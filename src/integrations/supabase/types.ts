@@ -14,16 +14,636 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amc_clients: {
+        Row: {
+          allocated_hours: number
+          bd_person: string | null
+          client_id: string | null
+          consumed_hours: number
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          start_date: string
+          updated_at: string
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          allocated_hours?: number
+          bd_person?: string | null
+          client_id?: string | null
+          consumed_hours?: number
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          start_date: string
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          allocated_hours?: number
+          bd_person?: string | null
+          client_id?: string | null
+          consumed_hours?: number
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amc_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amc_clients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amc_clients_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          billing_contact: string | null
+          billing_email: string | null
+          client_type: Database["public"]["Enums"]["client_type"]
+          company_name: string
+          contacts: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          primary_contact: string | null
+          primary_email: string | null
+          primary_phone: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          billing_contact?: string | null
+          billing_email?: string | null
+          client_type?: Database["public"]["Enums"]["client_type"]
+          company_name: string
+          contacts?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          primary_contact?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          billing_contact?: string | null
+          billing_email?: string | null
+          client_type?: Database["public"]["Enums"]["client_type"]
+          company_name?: string
+          contacts?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          primary_contact?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credential_access_logs: {
+        Row: {
+          accessed_at: string
+          accessed_by: string
+          id: string
+          ip_address: string | null
+          renewal_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_by: string
+          id?: string
+          ip_address?: string | null
+          renewal_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          accessed_by?: string
+          id?: string
+          ip_address?: string | null
+          renewal_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_access_logs_accessed_by_fkey"
+            columns: ["accessed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credential_access_logs_renewal_id_fkey"
+            columns: ["renewal_id"]
+            isOneToOne: false
+            referencedRelation: "renewals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          html_body: string
+          id: string
+          subject: string
+          template_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          html_body: string
+          id?: string
+          subject: string
+          template_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          html_body?: string
+          id?: string
+          subject?: string
+          template_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_logs: {
+        Row: {
+          error_message: string | null
+          expiry_kind: string | null
+          id: string
+          reminder_type: string
+          renewal_id: string | null
+          sent_at: string
+          sent_to: string[]
+          status: string
+        }
+        Insert: {
+          error_message?: string | null
+          expiry_kind?: string | null
+          id?: string
+          reminder_type: string
+          renewal_id?: string | null
+          sent_at?: string
+          sent_to?: string[]
+          status: string
+        }
+        Update: {
+          error_message?: string | null
+          expiry_kind?: string | null
+          id?: string
+          reminder_type?: string
+          renewal_id?: string | null
+          sent_at?: string
+          sent_to?: string[]
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_logs_renewal_id_fkey"
+            columns: ["renewal_id"]
+            isOneToOne: false
+            referencedRelation: "renewals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewals: {
+        Row: {
+          admin_url: string | null
+          client_id: string | null
+          client_type: Database["public"]["Enums"]["client_type"]
+          contact_emails: string[]
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          domain: string
+          domain_expiry: string | null
+          email_count: number | null
+          ftp_host: string | null
+          ftp_password_enc: string | null
+          ftp_port: number | null
+          ftp_username_enc: string | null
+          ga_expiry: string | null
+          hosting_expiry: string | null
+          hosting_provider: string | null
+          id: string
+          mail_type: string | null
+          notes: string | null
+          ownership: string | null
+          panel_type: string | null
+          password_enc: string | null
+          phone_1: string | null
+          phone_2: string | null
+          registrar: string | null
+          reminder_1_sent: boolean
+          reminder_30_sent: boolean
+          reminder_7_sent: boolean
+          reminder_expired_sent: boolean
+          service_type: string | null
+          updated_at: string
+          updated_by: string | null
+          username_enc: string | null
+        }
+        Insert: {
+          admin_url?: string | null
+          client_id?: string | null
+          client_type?: Database["public"]["Enums"]["client_type"]
+          contact_emails?: string[]
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          domain_expiry?: string | null
+          email_count?: number | null
+          ftp_host?: string | null
+          ftp_password_enc?: string | null
+          ftp_port?: number | null
+          ftp_username_enc?: string | null
+          ga_expiry?: string | null
+          hosting_expiry?: string | null
+          hosting_provider?: string | null
+          id?: string
+          mail_type?: string | null
+          notes?: string | null
+          ownership?: string | null
+          panel_type?: string | null
+          password_enc?: string | null
+          phone_1?: string | null
+          phone_2?: string | null
+          registrar?: string | null
+          reminder_1_sent?: boolean
+          reminder_30_sent?: boolean
+          reminder_7_sent?: boolean
+          reminder_expired_sent?: boolean
+          service_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          username_enc?: string | null
+        }
+        Update: {
+          admin_url?: string | null
+          client_id?: string | null
+          client_type?: Database["public"]["Enums"]["client_type"]
+          contact_emails?: string[]
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          domain_expiry?: string | null
+          email_count?: number | null
+          ftp_host?: string | null
+          ftp_password_enc?: string | null
+          ftp_port?: number | null
+          ftp_username_enc?: string | null
+          ga_expiry?: string | null
+          hosting_expiry?: string | null
+          hosting_provider?: string | null
+          id?: string
+          mail_type?: string | null
+          notes?: string | null
+          ownership?: string | null
+          panel_type?: string | null
+          password_enc?: string | null
+          phone_1?: string | null
+          phone_2?: string | null
+          registrar?: string | null
+          reminder_1_sent?: boolean
+          reminder_30_sent?: boolean
+          reminder_7_sent?: boolean
+          reminder_expired_sent?: boolean
+          service_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          username_enc?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewals_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entries: {
+        Row: {
+          amc_client_id: string
+          created_at: string
+          created_by: string | null
+          developer_name: string
+          entry_date: string
+          hours: number
+          id: string
+          is_billable: boolean
+          minutes: number
+          status: Database["public"]["Enums"]["time_entry_status"]
+          updated_at: string
+          updated_by: string | null
+          work_description: string
+        }
+        Insert: {
+          amc_client_id: string
+          created_at?: string
+          created_by?: string | null
+          developer_name: string
+          entry_date?: string
+          hours?: number
+          id?: string
+          is_billable?: boolean
+          minutes?: number
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          updated_at?: string
+          updated_by?: string | null
+          work_description: string
+        }
+        Update: {
+          amc_client_id?: string
+          created_at?: string
+          created_by?: string | null
+          developer_name?: string
+          entry_date?: string
+          hours?: number
+          id?: string
+          is_billable?: boolean
+          minutes?: number
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          updated_at?: string
+          updated_by?: string | null
+          work_description?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_amc_client_id_fkey"
+            columns: ["amc_client_id"]
+            isOneToOne: false
+            referencedRelation: "amc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          last_login: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id: string
+          is_active?: boolean
+          last_login?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      dec_text: { Args: { cipher: string }; Returns: string }
+      enc_text: { Args: { plain: string }; Returns: string }
+      get_crypto_key: { Args: never; Returns: string }
+      get_renewal_credentials: {
+        Args: { _renewal_id: string }
+        Returns: {
+          admin_url: string
+          ftp_host: string
+          ftp_password: string
+          ftp_port: number
+          ftp_username: string
+          panel_type: string
+          password: string
+          username: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_active_user: { Args: { _user_id: string }; Returns: boolean }
+      set_renewal_credentials: {
+        Args: {
+          _admin_url: string
+          _ftp_host: string
+          _ftp_password: string
+          _ftp_port: number
+          _ftp_username: string
+          _panel_type: string
+          _password: string
+          _renewal_id: string
+          _username: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      amc_status: "active" | "inactive" | "expired" | "hours_exhausted"
+      app_role: "super_admin" | "manager"
+      client_type: "internal" | "external"
+      renewal_status:
+        | "active"
+        | "expiring_soon"
+        | "expiring_critical"
+        | "expired"
+      time_entry_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +770,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      amc_status: ["active", "inactive", "expired", "hours_exhausted"],
+      app_role: ["super_admin", "manager"],
+      client_type: ["internal", "external"],
+      renewal_status: [
+        "active",
+        "expiring_soon",
+        "expiring_critical",
+        "expired",
+      ],
+      time_entry_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
