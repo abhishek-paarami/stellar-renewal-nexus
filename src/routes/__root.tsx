@@ -35,10 +35,14 @@ export const Route = createRootRoute({
       { name: "description", content: "Enterprise Renewal & AMC Management Portal for Paarami Digital." },
       { name: "author", content: "Paarami Digital" },
       { property: "og:title", content: "Paarami Renewal + AMC Portal" },
-      { property: "og:description", content: "Enterprise Renewal & AMC Management Portal." },
+      { property: "og:description", content: "Enterprise Renewal & AMC Management Portal for Paarami Digital." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@PaaramiDigital" },
+      { name: "twitter:title", content: "Paarami Renewal + AMC Portal" },
+      { name: "twitter:description", content: "Enterprise Renewal & AMC Management Portal for Paarami Digital." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/558cd2b6-819c-4bca-8d05-945089130eba/id-preview-f9d7f48f--3b9a7750-3682-4190-9e6a-3063b3fd84e5.lovable.app-1777295819222.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/558cd2b6-819c-4bca-8d05-945089130eba/id-preview-f9d7f48f--3b9a7750-3682-4190-9e6a-3063b3fd84e5.lovable.app-1777295819222.png" },
     ],
     links: [
       {
