@@ -297,15 +297,15 @@ function RenewalDialog({
     if (renewalId && (form.username || form.password || form.ftp_username || form.ftp_password)) {
       const { error: rpcErr } = await supabase.rpc("set_renewal_credentials", {
         _renewal_id: renewalId,
-        _admin_url: form.admin_url || null,
-        _username: form.username || null,
-        _password: form.password || null,
-        _panel_type: form.panel_type || null,
-        _ftp_host: form.ftp_host || null,
-        _ftp_username: form.ftp_username || null,
-        _ftp_password: form.ftp_password || null,
-        _ftp_port: form.ftp_port ? parseInt(form.ftp_port) : null,
-      });
+        _admin_url: form.admin_url,
+        _username: form.username,
+        _password: form.password,
+        _panel_type: form.panel_type,
+        _ftp_host: form.ftp_host,
+        _ftp_username: form.ftp_username,
+        _ftp_password: form.ftp_password,
+        _ftp_port: form.ftp_port ? parseInt(form.ftp_port) : (0 as number),
+      } as any);
       if (rpcErr) { setSaving(false); return toast.error(`Saved but credentials failed: ${rpcErr.message}`); }
     }
 
