@@ -1,1 +1,10 @@
 project_id = "lqrgsnoyuiqxqwekkwcp"
+
+[functions.send-renewal-reminders]
+verify_jwt = false
+
+[functions.send-test-email]
+verify_jwt = true
+
+[functions.admin-create-user]
+verify_jwt = true
