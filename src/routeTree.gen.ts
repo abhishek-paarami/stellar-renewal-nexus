@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTimeEntriesRouteImport } from './routes/_app/time-entries'
+import { Route as AppRenewalsRouteImport } from './routes/_app/renewals'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppClientsRouteImport } from './routes/_app/clients'
 import { Route as AppAmcRouteImport } from './routes/_app/amc'
@@ -29,6 +31,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppTimeEntriesRoute = AppTimeEntriesRouteImport.update({
+  id: '/time-entries',
+  path: '/time-entries',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRenewalsRoute = AppRenewalsRouteImport.update({
+  id: '/renewals',
+  path: '/renewals',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
@@ -52,6 +64,8 @@ export interface FileRoutesByFullPath {
   '/amc': typeof AppAmcRoute
   '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/renewals': typeof AppRenewalsRoute
+  '/time-entries': typeof AppTimeEntriesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +73,8 @@ export interface FileRoutesByTo {
   '/amc': typeof AppAmcRoute
   '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/renewals': typeof AppRenewalsRoute
+  '/time-entries': typeof AppTimeEntriesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +84,28 @@ export interface FileRoutesById {
   '/_app/amc': typeof AppAmcRoute
   '/_app/clients': typeof AppClientsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/renewals': typeof AppRenewalsRoute
+  '/_app/time-entries': typeof AppTimeEntriesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/amc' | '/clients' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/amc'
+    | '/clients'
+    | '/dashboard'
+    | '/renewals'
+    | '/time-entries'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/amc' | '/clients' | '/dashboard'
+  to:
+    | '/'
+    | '/login'
+    | '/amc'
+    | '/clients'
+    | '/dashboard'
+    | '/renewals'
+    | '/time-entries'
   id:
     | '__root__'
     | '/'
@@ -82,6 +114,8 @@ export interface FileRouteTypes {
     | '/_app/amc'
     | '/_app/clients'
     | '/_app/dashboard'
+    | '/_app/renewals'
+    | '/_app/time-entries'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -113,6 +147,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/time-entries': {
+      id: '/_app/time-entries'
+      path: '/time-entries'
+      fullPath: '/time-entries'
+      preLoaderRoute: typeof AppTimeEntriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/renewals': {
+      id: '/_app/renewals'
+      path: '/renewals'
+      fullPath: '/renewals'
+      preLoaderRoute: typeof AppRenewalsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -141,12 +189,16 @@ interface AppRouteChildren {
   AppAmcRoute: typeof AppAmcRoute
   AppClientsRoute: typeof AppClientsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppRenewalsRoute: typeof AppRenewalsRoute
+  AppTimeEntriesRoute: typeof AppTimeEntriesRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAmcRoute: AppAmcRoute,
   AppClientsRoute: AppClientsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppRenewalsRoute: AppRenewalsRoute,
+  AppTimeEntriesRoute: AppTimeEntriesRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
