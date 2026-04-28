@@ -20,11 +20,12 @@ import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/time-entries")({ component: TimeEntriesPage });
 
+type EntryStatus = "pending" | "approved" | "rejected";
 interface EntryRow {
   id: string; amc_client_id: string; developer_name: string;
   entry_date: string; work_description: string;
   hours: number; minutes: number; is_billable: boolean;
-  status: "draft" | "approved" | "void";
+  status: EntryStatus;
   created_at: string;
 }
 
@@ -120,7 +121,7 @@ function TimeEntriesPage() {
                       <td className="px-4 py-3">
                         <Badge variant="outline" className={
                           r.status === "approved" ? "bg-success/10 text-success border-success/20"
-                          : r.status === "void" ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : r.status === "rejected" ? "bg-destructive/10 text-destructive border-destructive/20"
                           : "bg-warning/15 text-warning border-warning/20"
                         }>{r.status}</Badge>
                       </td>
@@ -158,7 +159,7 @@ function EntryDialog({
   const empty = {
     amc_client_id: "", developer_name: "", entry_date: new Date().toISOString().slice(0, 10),
     work_description: "", hours: "0", minutes: "0",
-    is_billable: true, status: "approved" as "draft" | "approved" | "void",
+    is_billable: true, status: "approved" as EntryStatus,
   };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
@@ -231,9 +232,9 @@ function EntryDialog({
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as any })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="void">Void</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
           </div>
