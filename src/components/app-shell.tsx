@@ -13,8 +13,8 @@ import {
   LogOut,
   Bell,
   ChevronDown,
+  FileSpreadsheet,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ const NAV = [
   { to: "/credentials", label: "Credentials Vault", icon: KeyRound, role: "super_admin" as const },
   { to: "/email-templates", label: "Email Templates", icon: Mail, role: "super_admin" as const },
   { to: "/users", label: "User Management", icon: Shield, role: "super_admin" as const },
+  { to: "/import-export", label: "Import / Export", icon: FileSpreadsheet, role: "super_admin" as const },
   { to: "/settings", label: "Settings", icon: Settings, role: "super_admin" as const },
 ];
 
@@ -84,10 +85,7 @@ export function AppShell() {
                 }`}
               >
                 {active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary-glow"
-                  />
+                  <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary-glow" />
                 )}
                 <Icon className="h-4 w-4" />
                 {n.label}
@@ -176,6 +174,7 @@ function titleFromPath(path: string): string {
     credentials: "Credentials Vault",
     "email-templates": "Email Templates",
     users: "User Management",
+    "import-export": "Import / Export",
     settings: "Settings",
   };
   return map[seg] || "Paarami Portal";
