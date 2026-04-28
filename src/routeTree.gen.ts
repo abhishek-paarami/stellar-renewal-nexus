@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppTimeEntriesRouteImport } from './routes/_app/time-entries'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppRenewalsRouteImport } from './routes/_app/renewals'
+import { Route as AppEmailTemplatesRouteImport } from './routes/_app/email-templates'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCredentialsRouteImport } from './routes/_app/credentials'
 import { Route as AppClientsRouteImport } from './routes/_app/clients'
 import { Route as AppAmcRouteImport } from './routes/_app/amc'
 
@@ -32,9 +36,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTimeEntriesRoute = AppTimeEntriesRouteImport.update({
   id: '/time-entries',
   path: '/time-entries',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRenewalsRoute = AppRenewalsRouteImport.update({
@@ -42,9 +56,19 @@ const AppRenewalsRoute = AppRenewalsRouteImport.update({
   path: '/renewals',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEmailTemplatesRoute = AppEmailTemplatesRouteImport.update({
+  id: '/email-templates',
+  path: '/email-templates',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCredentialsRoute = AppCredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientsRoute = AppClientsRouteImport.update({
@@ -63,18 +87,26 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/amc': typeof AppAmcRoute
   '/clients': typeof AppClientsRoute
+  '/credentials': typeof AppCredentialsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/email-templates': typeof AppEmailTemplatesRoute
   '/renewals': typeof AppRenewalsRoute
+  '/settings': typeof AppSettingsRoute
   '/time-entries': typeof AppTimeEntriesRoute
+  '/users': typeof AppUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/amc': typeof AppAmcRoute
   '/clients': typeof AppClientsRoute
+  '/credentials': typeof AppCredentialsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/email-templates': typeof AppEmailTemplatesRoute
   '/renewals': typeof AppRenewalsRoute
+  '/settings': typeof AppSettingsRoute
   '/time-entries': typeof AppTimeEntriesRoute
+  '/users': typeof AppUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -83,9 +115,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/amc': typeof AppAmcRoute
   '/_app/clients': typeof AppClientsRoute
+  '/_app/credentials': typeof AppCredentialsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/email-templates': typeof AppEmailTemplatesRoute
   '/_app/renewals': typeof AppRenewalsRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/time-entries': typeof AppTimeEntriesRoute
+  '/_app/users': typeof AppUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -94,18 +130,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/amc'
     | '/clients'
+    | '/credentials'
     | '/dashboard'
+    | '/email-templates'
     | '/renewals'
+    | '/settings'
     | '/time-entries'
+    | '/users'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/amc'
     | '/clients'
+    | '/credentials'
     | '/dashboard'
+    | '/email-templates'
     | '/renewals'
+    | '/settings'
     | '/time-entries'
+    | '/users'
   id:
     | '__root__'
     | '/'
@@ -113,9 +157,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/amc'
     | '/_app/clients'
+    | '/_app/credentials'
     | '/_app/dashboard'
+    | '/_app/email-templates'
     | '/_app/renewals'
+    | '/_app/settings'
     | '/_app/time-entries'
+    | '/_app/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -147,11 +195,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/users': {
+      id: '/_app/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/time-entries': {
       id: '/_app/time-entries'
       path: '/time-entries'
       fullPath: '/time-entries'
       preLoaderRoute: typeof AppTimeEntriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/renewals': {
@@ -161,11 +223,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRenewalsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/email-templates': {
+      id: '/_app/email-templates'
+      path: '/email-templates'
+      fullPath: '/email-templates'
+      preLoaderRoute: typeof AppEmailTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/credentials': {
+      id: '/_app/credentials'
+      path: '/credentials'
+      fullPath: '/credentials'
+      preLoaderRoute: typeof AppCredentialsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/clients': {
@@ -188,17 +264,25 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAmcRoute: typeof AppAmcRoute
   AppClientsRoute: typeof AppClientsRoute
+  AppCredentialsRoute: typeof AppCredentialsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppEmailTemplatesRoute: typeof AppEmailTemplatesRoute
   AppRenewalsRoute: typeof AppRenewalsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppTimeEntriesRoute: typeof AppTimeEntriesRoute
+  AppUsersRoute: typeof AppUsersRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAmcRoute: AppAmcRoute,
   AppClientsRoute: AppClientsRoute,
+  AppCredentialsRoute: AppCredentialsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppEmailTemplatesRoute: AppEmailTemplatesRoute,
   AppRenewalsRoute: AppRenewalsRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppTimeEntriesRoute: AppTimeEntriesRoute,
+  AppUsersRoute: AppUsersRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
