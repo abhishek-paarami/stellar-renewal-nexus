@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Lock, Mail, Shield } from "lucide-react";
+import { Loader2, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -49,14 +49,11 @@ function LoginPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex items-center gap-3 text-sidebar-foreground"
+            className="flex flex-col items-start gap-2 text-sidebar-foreground"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow shadow-lg">
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <div className="text-base font-semibold tracking-tight">Paarami Digital</div>
-              <div className="text-xs text-sidebar-foreground/60">Internal Operations Portal</div>
+            <img src="/logo.png" alt="Paarami Digital" className="h-10 w-auto" />
+            <div className="text-xs uppercase tracking-[0.25em] text-sidebar-foreground/60">
+              Internal Operations Portal
             </div>
           </motion.div>
 
@@ -82,9 +79,9 @@ function LoginPage() {
                 { k: "Automated", v: "30 / 7 / 1 day reminders" },
                 { k: "Audited", v: "Every access logged" },
               ].map((f) => (
-                <div key={f.k} className="rounded-xl border border-sidebar-border/40 bg-sidebar-accent/30 p-3 backdrop-blur">
-                  <div className="font-semibold text-sidebar-foreground">{f.k}</div>
-                  <div className="mt-1 text-xs text-sidebar-foreground/60">{f.v}</div>
+                <div key={f.k} className="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-900">{f.k}</div>
+                  <div className="mt-1 text-xs text-slate-600">{f.v}</div>
                 </div>
               ))}
             </div>
@@ -104,11 +101,11 @@ function LoginPage() {
             className="w-full max-w-md"
           >
             <div className="rounded-2xl border border-border bg-card p-8 shadow-2xl">
-              <div className="mb-8 text-center lg:hidden">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow">
-                  <Shield className="h-6 w-6 text-primary-foreground" />
+              <div className="mb-8 flex flex-col items-center lg:hidden">
+                <img src="/logo.png" alt="Paarami Digital" className="h-9 w-auto" />
+                <div className="mt-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  Internal Operations Portal
                 </div>
-                <h2 className="mt-3 text-lg font-semibold">Paarami Portal</h2>
               </div>
 
               <h2 className="text-2xl font-bold tracking-tight">Sign in to your account</h2>
