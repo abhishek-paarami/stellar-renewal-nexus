@@ -97,17 +97,29 @@ Deno.serve(async (req) => {
         const html = render(tpl.html, vars);
 
         try {
-          await sendMail(cfg, { to: recipients, cc, subject, html });
+          const trace: string[] = [];
+          await sendMail(cfg, { to: recipients, cc, subject, html }, (l) => trace.push(l));
           sent++;
           await admin.from("renewals").update({ [flagField]: true }).eq("id", r.id);
           await admin.from("reminder_logs").insert({
             renewal_id: r.id, reminder_type: templateKey, expiry_kind: k.label,
             sent_to: recipients, status: "success",
           });
+          await admin.from("email_logs").insert({
+            email_type: "renewal_reminder", to_addresses: recipients, cc_addresses: cc,
+            subject, status: "success", smtp_response: trace.slice(-15).join("\n"),
+            related_entity: "renewal", related_id: r.id,
+          });
         } catch (err: any) {
+          const errMsg = String(err?.message || err);
           await admin.from("reminder_logs").insert({
             renewal_id: r.id, reminder_type: templateKey, expiry_kind: k.label,
-            sent_to: recipients, status: "failed", error_message: String(err?.message || err),
+            sent_to: recipients, status: "failed", error_message: errMsg,
+          });
+          await admin.from("email_logs").insert({
+            email_type: "renewal_reminder", to_addresses: recipients, cc_addresses: cc,
+            subject, status: "failed", error_message: errMsg,
+            related_entity: "renewal", related_id: r.id,
           });
         }
       }

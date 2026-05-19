@@ -56,7 +56,7 @@ function b64(s: string) {
   return btoa(s);
 }
 
-export async function sendMail(cfg: SmtpConfig, msg: MailMessage): Promise<void> {
+export async function sendMail(cfg: SmtpConfig, msg: MailMessage, onTrace?: (line: string) => void): Promise<void> {
   let conn: Deno.Conn | Deno.TlsConn = cfg.secure
     ? await Deno.connectTls({ hostname: cfg.host, port: cfg.port })
     : await Deno.connect({ hostname: cfg.host, port: cfg.port });
@@ -67,6 +67,7 @@ export async function sendMail(cfg: SmtpConfig, msg: MailMessage): Promise<void>
 
   const expect = async (codes: number[]) => {
     const r = await readResponse(reader, buf);
+    onTrace?.(`S: ${r.text.trim()}`);
     if (!codes.includes(r.code)) {
       try { conn.close(); } catch (_) { /* noop */ }
       throw new Error(`SMTP ${r.code}: ${r.text.trim()}`);
@@ -74,6 +75,7 @@ export async function sendMail(cfg: SmtpConfig, msg: MailMessage): Promise<void>
     return r;
   };
   const cmd = async (s: string, codes: number[]) => {
+    onTrace?.(`C: ${s.startsWith("AUTH") || /^[A-Za-z0-9+/=]+$/.test(s) && s.length > 20 ? s.split(" ")[0] + " ***" : s}`);
     await writer.write(enc.encode(s + "\r\n"));
     return expect(codes);
   };

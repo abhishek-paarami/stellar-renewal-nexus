@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Save, Mail, Bell, Send, Activity } from "lucide-react";
+import { Save, Mail, Bell, Send, Activity, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { fmtDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -28,11 +28,13 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="smtp"><Mail className="mr-2 h-4 w-4" />SMTP</TabsTrigger>
           <TabsTrigger value="reminders"><Bell className="mr-2 h-4 w-4" />Reminders</TabsTrigger>
+          <TabsTrigger value="email-log"><Inbox className="mr-2 h-4 w-4" />Email Log</TabsTrigger>
           <TabsTrigger value="logs"><Send className="mr-2 h-4 w-4" />Reminder Log</TabsTrigger>
           <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4" />Activity Log</TabsTrigger>
         </TabsList>
         <TabsContent value="smtp"><SmtpPanel /></TabsContent>
         <TabsContent value="reminders"><ReminderPanel /></TabsContent>
+        <TabsContent value="email-log"><EmailLogs /></TabsContent>
         <TabsContent value="logs"><ReminderLogs /></TabsContent>
         <TabsContent value="activity"><ActivityLogs /></TabsContent>
       </Tabs>
@@ -209,6 +211,70 @@ function ReminderLogs() {
             </tr>
           ))}
           {logs.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No reminders sent yet.</td></tr>}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
+function EmailLogs() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [open, setOpen] = useState<string | null>(null);
+  const load = async () => {
+    const { data } = await supabase.from("email_logs").select("*").order("sent_at", { ascending: false }).limit(200);
+    setLogs(data || []);
+  };
+  useEffect(() => { void load(); }, []);
+  return (
+    <Card className="mt-4 overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <div className="text-sm font-medium">Email Send Log (test + reminders)</div>
+        <Button variant="outline" size="sm" onClick={load}>Refresh</Button>
+      </div>
+      <table className="w-full text-sm">
+        <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+          <tr>
+            <th className="px-4 py-3 text-left">When</th>
+            <th className="px-4 py-3 text-left">Type</th>
+            <th className="px-4 py-3 text-left">To</th>
+            <th className="px-4 py-3 text-left">Subject</th>
+            <th className="px-4 py-3 text-left">Status</th>
+            <th className="px-4 py-3 text-left">Details</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {logs.map((l) => (
+            <Fragment key={l.id}>
+              <tr>
+                <td className="px-4 py-3 text-xs whitespace-nowrap">{fmtDate(l.sent_at)} {new Date(l.sent_at).toLocaleTimeString()}</td>
+                <td className="px-4 py-3"><Badge variant="outline">{l.email_type}</Badge></td>
+                <td className="px-4 py-3 text-xs">{(l.to_addresses || []).join(", ")}</td>
+                <td className="px-4 py-3 text-xs">{l.subject || "—"}</td>
+                <td className="px-4 py-3">
+                  <Badge variant="outline" className={l.status === "success" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"}>
+                    {l.status}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <button className="text-primary underline" onClick={() => setOpen(open === l.id ? null : l.id)}>
+                    {open === l.id ? "Hide" : "View"}
+                  </button>
+                </td>
+              </tr>
+              {open === l.id && (
+                <tr className="bg-muted/20">
+                  <td colSpan={6} className="px-4 py-3">
+                    {l.error_message && <div className="mb-2 text-xs text-destructive"><strong>Error:</strong> {l.error_message}</div>}
+                    {l.smtp_response && (
+                      <pre className="whitespace-pre-wrap break-all rounded bg-background p-3 font-mono text-[11px] text-muted-foreground">{l.smtp_response}</pre>
+                    )}
+                    {!l.error_message && !l.smtp_response && <div className="text-xs text-muted-foreground">No additional details.</div>}
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          ))}
+          {logs.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No emails sent yet.</td></tr>}
         </tbody>
       </table>
     </Card>

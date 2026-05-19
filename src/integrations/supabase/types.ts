@@ -274,6 +274,51 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          cc_addresses: string[]
+          email_type: string
+          error_message: string | null
+          id: string
+          related_entity: string | null
+          related_id: string | null
+          sent_at: string
+          smtp_response: string | null
+          status: string
+          subject: string | null
+          to_addresses: string[]
+          triggered_by: string | null
+        }
+        Insert: {
+          cc_addresses?: string[]
+          email_type: string
+          error_message?: string | null
+          id?: string
+          related_entity?: string | null
+          related_id?: string | null
+          sent_at?: string
+          smtp_response?: string | null
+          status: string
+          subject?: string | null
+          to_addresses?: string[]
+          triggered_by?: string | null
+        }
+        Update: {
+          cc_addresses?: string[]
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          related_entity?: string | null
+          related_id?: string | null
+          sent_at?: string
+          smtp_response?: string | null
+          status?: string
+          subject?: string | null
+          to_addresses?: string[]
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           html_body: string
