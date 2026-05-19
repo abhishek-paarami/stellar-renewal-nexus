@@ -14,7 +14,7 @@ import {
   Bell,
   ChevronDown,
   FileSpreadsheet,
-  KeyRound as PasswordIcon,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,7 +140,7 @@ export function AppShell() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setPwOpen(true)}>
-                  <PasswordIcon className="mr-2 h-4 w-4" />
+                  <Lock className="mr-2 h-4 w-4" />
                   Change password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
