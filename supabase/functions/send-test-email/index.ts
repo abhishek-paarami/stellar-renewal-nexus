@@ -31,8 +31,12 @@ Deno.serve(async (req) => {
 
     const { data: s } = await supabase.from("app_settings").select("value").eq("key", "smtp").maybeSingle();
     const cfg = (s?.value || {}) as Partial<SmtpConfig> & { enabled?: boolean };
-    if (!cfg.host || !cfg.username || !cfg.password || !cfg.from_email) {
-      return json({ error: "SMTP not configured" }, 400);
+    const missing = (["host", "username", "password", "from_email"] as const).filter((k) => !cfg[k]);
+    if (missing.length) {
+      return json(
+        { error: `SMTP not configured — please fill in: ${missing.join(", ")} on Settings → SMTP and click Save SMTP.` },
+        400,
+      );
     }
 
     await sendMail(
