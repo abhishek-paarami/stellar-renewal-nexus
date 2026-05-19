@@ -72,6 +72,10 @@ function SmtpPanel() {
 
   const sendTest = async () => {
     if (!testEmail) return toast.error("Enter a test email");
+    const missing = (["host", "username", "password", "from_email"] as const).filter((k) => !(form as any)[k]);
+    if (missing.length) {
+      return toast.error(`Please fill in & Save SMTP first. Missing: ${missing.join(", ")}`);
+    }
     setTesting(true);
     const { data, error } = await supabase.functions.invoke("send-test-email", {
       body: { to: testEmail },
