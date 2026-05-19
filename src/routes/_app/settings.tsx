@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Save, Mail, Bell, Send, Activity } from "lucide-react";
+import { Save, Mail, Bell, Send, Activity, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { fmtDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -28,11 +28,13 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="smtp"><Mail className="mr-2 h-4 w-4" />SMTP</TabsTrigger>
           <TabsTrigger value="reminders"><Bell className="mr-2 h-4 w-4" />Reminders</TabsTrigger>
+          <TabsTrigger value="email-log"><Inbox className="mr-2 h-4 w-4" />Email Log</TabsTrigger>
           <TabsTrigger value="logs"><Send className="mr-2 h-4 w-4" />Reminder Log</TabsTrigger>
           <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4" />Activity Log</TabsTrigger>
         </TabsList>
         <TabsContent value="smtp"><SmtpPanel /></TabsContent>
         <TabsContent value="reminders"><ReminderPanel /></TabsContent>
+        <TabsContent value="email-log"><EmailLogs /></TabsContent>
         <TabsContent value="logs"><ReminderLogs /></TabsContent>
         <TabsContent value="activity"><ActivityLogs /></TabsContent>
       </Tabs>
