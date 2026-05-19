@@ -63,7 +63,7 @@ function RenewalsPage() {
     setLoading(true);
     const [{ data: r }, { data: c }] = await Promise.all([
       supabase.from("renewals").select("*").order("domain_expiry", { ascending: true, nullsFirst: false }),
-      supabase.from("clients").select("id, company_name").order("company_name"),
+      supabase.from("clients").select("id, company_name, client_type").order("company_name"),
     ]);
     setRows((r as any) || []);
     setClients((c as any) || []);
@@ -72,6 +72,8 @@ function RenewalsPage() {
   useEffect(() => { void load(); }, []);
 
   const clientName = (id: string | null) => clients.find((c) => c.id === id)?.company_name || "—";
+  const clientType = (id: string | null) =>
+    (clients.find((c) => c.id === id) as any)?.client_type as "internal" | "external" | undefined;
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
