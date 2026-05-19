@@ -36,7 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("id, full_name, email, role, is_active")
       .eq("id", uid)
       .maybeSingle();
-    if (data) setProfile(data as UserProfile);
+    if (data) {
+      if (data.is_active === false) {
+        await supabase.auth.signOut();
+        setProfile(null);
+        return;
+      }
+      setProfile(data as UserProfile);
+    }
   };
 
   useEffect(() => {
@@ -63,6 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
+    // Block disabled users from staying signed in
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (u) {
+      const { data: prof } = await supabase
+        .from("user_profiles")
+        .select("is_active")
+        .eq("id", u.id)
+        .maybeSingle();
+      if (!prof || prof.is_active === false) {
+        await supabase.auth.signOut();
+        return { error: "Your account has been disabled. Contact your Super Admin." };
+      }
+    }
     return {};
   };
 

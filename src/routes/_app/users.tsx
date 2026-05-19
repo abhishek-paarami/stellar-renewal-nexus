@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Shield, Users as UsersIcon } from "lucide-react";
+import { Plus, Shield, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
@@ -30,6 +30,7 @@ function UsersPage() {
   const [rows, setRows] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [resetTarget, setResetTarget] = useState<ProfileRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -54,6 +55,17 @@ function UsersPage() {
     toast.success(is_active ? "User activated" : "User deactivated"); void load();
   };
 
+  const deleteUser = async (row: ProfileRow) => {
+    if (row.id === user?.id) return toast.error("You cannot delete yourself");
+    if (!confirm(`Permanently delete ${row.email}? This cannot be undone.`)) return;
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: { action: "delete", user_id: row.id },
+    });
+    if (error) return toast.error(error.message);
+    if ((data as any)?.error) return toast.error((data as any).error);
+    toast.success("User deleted"); void load();
+  };
+
   return (
     <div>
       <PageHeader
@@ -76,6 +88,7 @@ function UsersPage() {
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Last Login</th>
                 <th className="px-4 py-3">Joined</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -104,6 +117,22 @@ function UsersPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.last_login ? fmtDate(r.last_login) : "Never"}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.created_at)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => setResetTarget(r)} title="Reset password">
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon" variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => deleteUser(r)}
+                        disabled={r.id === user?.id}
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -112,6 +141,12 @@ function UsersPage() {
       )}
 
       <InviteDialog open={open} onOpenChange={setOpen} onSaved={() => { setOpen(false); void load(); }} />
+      {resetTarget && (
+        <ResetPasswordDialog
+          target={resetTarget}
+          onClose={() => setResetTarget(null)}
+        />
+      )}
     </div>
   );
 }
@@ -125,12 +160,14 @@ function InviteDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenCh
     if (!form.email || !form.password || !form.full_name) return toast.error("All fields required");
     setSaving(true);
     const { data, error } = await supabase.functions.invoke("admin-create-user", {
-      body: { email: form.email, password: form.password, full_name: form.full_name, role: form.role },
+      body: { action: "create", email: form.email, password: form.password, full_name: form.full_name, role: form.role },
     });
     setSaving(false);
     if (error) return toast.error(error.message);
     if ((data as any)?.error) return toast.error((data as any).error);
-    toast.success("User created");
+    const em = (data as any)?.email;
+    if (em?.sent) toast.success("User created — welcome email sent");
+    else toast.success(`User created${em?.error ? ` (email failed: ${em.error})` : ""}`);
     setForm({ full_name: "", email: "", password: "", role: "manager" });
     onSaved();
   };
@@ -159,6 +196,46 @@ function InviteDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenCh
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={saving}>{saving ? "Creating..." : "Create User"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ResetPasswordDialog({ target, onClose }: { target: ProfileRow; onClose: () => void }) {
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) return toast.error("Password must be at least 8 characters");
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: { action: "reset_password", user_id: target.id, password },
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    if ((data as any)?.error) return toast.error((data as any).error);
+    const em = (data as any)?.email;
+    if (em?.sent) toast.success("Password reset — email sent to user");
+    else toast.success(`Password reset${em?.error ? ` (email failed: ${em.error})` : ""}`);
+    onClose();
+  };
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Reset Password</DialogTitle>
+          <DialogDescription>Set a new password for <b>{target.email}</b>. They will be emailed the new password.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>New password</Label>
+            <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} placeholder="Min. 8 characters" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Reset & Email"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -14,6 +14,7 @@ import {
   Bell,
   ChevronDown,
   FileSpreadsheet,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from "react";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, role: "all" as const },
@@ -43,6 +46,7 @@ export function AppShell() {
   const { profile, signOut, isSuperAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [pwOpen, setPwOpen] = useState(false);
 
   const initials = (profile?.full_name || profile?.email || "?")
     .split(" ")
@@ -58,15 +62,10 @@ export function AppShell() {
         className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border lg:flex"
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border/60 px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow shadow-md">
-            <Shield className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-sidebar-foreground">Paarami Portal</div>
-            <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50">
-              Renewal & AMC
-            </div>
+        <div className="flex flex-col items-start gap-2 border-b border-sidebar-border/60 px-5 py-5">
+          <img src="/logo.png" alt="Paarami Digital" className="h-9 w-auto" />
+          <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+            Internal Operations Portal
           </div>
         </div>
 
@@ -140,6 +139,11 @@ export function AppShell() {
                   <div className="text-xs font-normal text-muted-foreground">{profile?.email}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setPwOpen(true)}>
+                  <Lock className="mr-2 h-4 w-4" />
+                  Change password
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={async () => {
                     await signOut();
@@ -159,6 +163,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <ChangePasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
     </div>
   );
 }

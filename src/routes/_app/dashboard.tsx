@@ -148,15 +148,15 @@ function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04, duration: 0.3 }}
             >
-              <Card className="overflow-hidden border-border">
+              <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
                 <CardContent className="p-5">
                   <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${c.tint}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div className="text-2xl font-bold tracking-tight">
+                  <div className="text-2xl font-bold tracking-tight text-slate-900">
                     {loading ? "…" : c.value}
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">{c.label}</div>
+                  <div className="mt-1 text-xs font-medium text-slate-500">{c.label}</div>
                 </CardContent>
               </Card>
             </motion.div>
