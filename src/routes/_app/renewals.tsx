@@ -51,7 +51,7 @@ type Filter = "all" | "expired" | "critical" | "warning" | "ok";
 function RenewalsPage() {
   const { isSuperAdmin } = useAuth();
   const [rows, setRows] = useState<RenewalRow[]>([]);
-  const [clients, setClients] = useState<{ id: string; company_name: string }[]>([]);
+  const [clients, setClients] = useState<{ id: string; company_name: string; client_type?: "internal" | "external" }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -212,7 +212,7 @@ function RenewalDialog({
   open, onOpenChange, renewal, clients, onSaved,
 }: {
   open: boolean; onOpenChange: (o: boolean) => void; renewal: RenewalRow | null;
-  clients: { id: string; company_name: string }[]; onSaved: () => void;
+  clients: { id: string; company_name: string; client_type?: "internal" | "external" }[]; onSaved: () => void;
 }) {
   const empty = {
     client_id: "", domain: "", service_type: "", ownership: "", registrar: "",
