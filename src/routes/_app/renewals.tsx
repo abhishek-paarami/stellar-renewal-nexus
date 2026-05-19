@@ -152,7 +152,7 @@ function RenewalsPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-sm">{clientName(r.client_id)}</div>
-                          <Badge variant="outline" className="mt-1 text-[10px]">{r.client_type}</Badge>
+                          <Badge variant="outline" className="mt-1 text-[10px]">{clientType(r.client_id) || r.client_type}</Badge>
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-xs">{fmtDate(r.domain_expiry)}</div>
@@ -328,24 +328,25 @@ function RenewalDialog({
             <Label>Domain *</Label>
             <Input value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} required placeholder="example.com" />
           </div>
-          <div className="space-y-2">
+          <div className="col-span-2 space-y-2">
             <Label>Client</Label>
-            <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+            <Select
+              value={form.client_id}
+              onValueChange={(v) => {
+                const c = clients.find((x) => x.id === v);
+                setForm({ ...form, client_id: v, client_type: (c?.client_type as any) || form.client_type });
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
               <SelectContent>
-                {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.company_name}{c.client_type ? ` · ${c.client_type}` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Type</Label>
-            <Select value={form.client_type} onValueChange={(v) => setForm({ ...form, client_type: v as any })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="external">External</SelectItem>
-                <SelectItem value="internal">Internal</SelectItem>
-              </SelectContent>
-            </Select>
+            <p className="text-xs text-muted-foreground">Type (Internal/External) is taken from the selected client.</p>
           </div>
           <div className="space-y-2"><Label>Service Type</Label><Input value={form.service_type} onChange={(e) => setForm({ ...form, service_type: e.target.value })} placeholder="Domain + Hosting" /></div>
           <div className="space-y-2"><Label>Ownership</Label><Input value={form.ownership} onChange={(e) => setForm({ ...form, ownership: e.target.value })} placeholder="Client / Paarami" /></div>
