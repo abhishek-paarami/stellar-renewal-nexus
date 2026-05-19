@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -244,8 +244,8 @@ function EmailLogs() {
         </thead>
         <tbody className="divide-y divide-border">
           {logs.map((l) => (
-            <>
-              <tr key={l.id}>
+            <Fragment key={l.id}>
+              <tr>
                 <td className="px-4 py-3 text-xs whitespace-nowrap">{fmtDate(l.sent_at)} {new Date(l.sent_at).toLocaleTimeString()}</td>
                 <td className="px-4 py-3"><Badge variant="outline">{l.email_type}</Badge></td>
                 <td className="px-4 py-3 text-xs">{(l.to_addresses || []).join(", ")}</td>
@@ -262,7 +262,7 @@ function EmailLogs() {
                 </td>
               </tr>
               {open === l.id && (
-                <tr key={l.id + "-d"} className="bg-muted/20">
+                <tr className="bg-muted/20">
                   <td colSpan={6} className="px-4 py-3">
                     {l.error_message && <div className="mb-2 text-xs text-destructive"><strong>Error:</strong> {l.error_message}</div>}
                     {l.smtp_response && (
@@ -272,7 +272,7 @@ function EmailLogs() {
                   </td>
                 </tr>
               )}
-            </>
+            </Fragment>
           ))}
           {logs.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No emails sent yet.</td></tr>}
         </tbody>
