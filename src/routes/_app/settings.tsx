@@ -217,6 +217,70 @@ function ReminderLogs() {
   );
 }
 
+function EmailLogs() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [open, setOpen] = useState<string | null>(null);
+  const load = async () => {
+    const { data } = await supabase.from("email_logs").select("*").order("sent_at", { ascending: false }).limit(200);
+    setLogs(data || []);
+  };
+  useEffect(() => { void load(); }, []);
+  return (
+    <Card className="mt-4 overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <div className="text-sm font-medium">Email Send Log (test + reminders)</div>
+        <Button variant="outline" size="sm" onClick={load}>Refresh</Button>
+      </div>
+      <table className="w-full text-sm">
+        <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+          <tr>
+            <th className="px-4 py-3 text-left">When</th>
+            <th className="px-4 py-3 text-left">Type</th>
+            <th className="px-4 py-3 text-left">To</th>
+            <th className="px-4 py-3 text-left">Subject</th>
+            <th className="px-4 py-3 text-left">Status</th>
+            <th className="px-4 py-3 text-left">Details</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {logs.map((l) => (
+            <>
+              <tr key={l.id}>
+                <td className="px-4 py-3 text-xs whitespace-nowrap">{fmtDate(l.sent_at)} {new Date(l.sent_at).toLocaleTimeString()}</td>
+                <td className="px-4 py-3"><Badge variant="outline">{l.email_type}</Badge></td>
+                <td className="px-4 py-3 text-xs">{(l.to_addresses || []).join(", ")}</td>
+                <td className="px-4 py-3 text-xs">{l.subject || "—"}</td>
+                <td className="px-4 py-3">
+                  <Badge variant="outline" className={l.status === "success" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"}>
+                    {l.status}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <button className="text-primary underline" onClick={() => setOpen(open === l.id ? null : l.id)}>
+                    {open === l.id ? "Hide" : "View"}
+                  </button>
+                </td>
+              </tr>
+              {open === l.id && (
+                <tr key={l.id + "-d"} className="bg-muted/20">
+                  <td colSpan={6} className="px-4 py-3">
+                    {l.error_message && <div className="mb-2 text-xs text-destructive"><strong>Error:</strong> {l.error_message}</div>}
+                    {l.smtp_response && (
+                      <pre className="whitespace-pre-wrap break-all rounded bg-background p-3 font-mono text-[11px] text-muted-foreground">{l.smtp_response}</pre>
+                    )}
+                    {!l.error_message && !l.smtp_response && <div className="text-xs text-muted-foreground">No additional details.</div>}
+                  </td>
+                </tr>
+              )}
+            </>
+          ))}
+          {logs.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No emails sent yet.</td></tr>}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
 function ActivityLogs() {
   const [logs, setLogs] = useState<any[]>([]);
   const [users, setUsers] = useState<Record<string, string>>({});
