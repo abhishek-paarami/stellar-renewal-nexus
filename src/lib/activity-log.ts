@@ -39,14 +39,14 @@ export async function logActivity(input: {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("activity_logs").insert({
+    await supabase.from("activity_logs").insert([{
       user_id: user.id,
       action_type: input.action,
       entity_type: input.entity ?? null,
       entity_id: input.entityId ?? null,
       description: input.description,
-      metadata: input.metadata ?? null,
-    });
+      metadata: (input.metadata ?? null) as never,
+    }]);
   } catch {
     /* swallow */
   }
