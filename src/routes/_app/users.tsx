@@ -16,6 +16,7 @@ import { Plus, Shield, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
+import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/_app/users")({ component: UsersPage });
 
@@ -46,12 +47,18 @@ function UsersPage() {
   const updateRole = async (id: string, role: "super_admin" | "manager") => {
     const { error } = await supabase.from("user_profiles").update({ role }).eq("id", id);
     if (error) return toast.error(error.message);
+    const u = rows.find((r) => r.id === id);
+    void logActivity({ action: "update", entity: "user", entityId: id,
+      description: `Changed role of ${u?.email || ""} to ${role}` });
     toast.success("Role updated"); void load();
   };
 
   const toggleActive = async (id: string, is_active: boolean) => {
     const { error } = await supabase.from("user_profiles").update({ is_active }).eq("id", id);
     if (error) return toast.error(error.message);
+    const u = rows.find((r) => r.id === id);
+    void logActivity({ action: "user_toggle_active", entity: "user", entityId: id,
+      description: `${is_active ? "Activated" : "Deactivated"} user ${u?.email || ""}` });
     toast.success(is_active ? "User activated" : "User deactivated"); void load();
   };
 
@@ -63,6 +70,8 @@ function UsersPage() {
     });
     if (error) return toast.error(error.message);
     if ((data as any)?.error) return toast.error((data as any).error);
+    void logActivity({ action: "user_delete", entity: "user", entityId: row.id,
+      description: `Deleted user ${row.email}` });
     toast.success("User deleted"); void load();
   };
 
