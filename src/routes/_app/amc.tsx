@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate, expiryStatus, statusColors } from "@/lib/format";
+import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/_app/amc")({
   component: AmcPage,
@@ -45,6 +46,7 @@ interface AmcRow {
   consumed_hours: number;
   is_active: boolean;
   notes: string | null;
+  notify_emails: string[] | null;
 }
 
 function AmcPage() {
@@ -77,8 +79,13 @@ function AmcPage() {
 
   const del = async (id: string) => {
     if (!confirm("Delete this AMC?")) return;
+    const row = rows.find((r) => r.id === id);
     const { error } = await supabase.from("amc_clients").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    void logActivity({
+      action: "delete", entity: "amc_client", entityId: id,
+      description: `Deleted AMC for ${clientName(row?.client_id || null)}`,
+    });
     toast.success("AMC deleted");
     void load();
   };
@@ -178,6 +185,7 @@ function AmcDialog({
     client_id: "", website: "", bd_person: "",
     start_date: "", end_date: "",
     allocated_hours: "", notes: "", is_active: true,
+    notify_emails: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -192,9 +200,10 @@ function AmcDialog({
         allocated_hours: amc.allocated_hours.toString(),
         notes: amc.notes || "",
         is_active: amc.is_active,
+        notify_emails: (amc.notify_emails || []).join(", "),
       });
     } else {
-      setForm({ client_id: "", website: "", bd_person: "", start_date: "", end_date: "", allocated_hours: "", notes: "", is_active: true });
+      setForm({ client_id: "", website: "", bd_person: "", start_date: "", end_date: "", allocated_hours: "", notes: "", is_active: true, notify_emails: "" });
     }
   }, [amc, open]);
 
@@ -213,12 +222,20 @@ function AmcDialog({
       allocated_hours: parseFloat(form.allocated_hours),
       notes: form.notes || null,
       is_active: form.is_active,
+      notify_emails: form.notify_emails
+        .split(/[,\s]+/).map((s) => s.trim()).filter((s) => /@/.test(s)),
     };
     const res = amc
       ? await supabase.from("amc_clients").update(payload).eq("id", amc.id)
       : await supabase.from("amc_clients").insert(payload);
     setSaving(false);
     if (res.error) return toast.error(res.error.message);
+    const newId = amc?.id || (res as any).data?.[0]?.id;
+    void logActivity({
+      action: amc ? "update" : "create",
+      entity: "amc_client", entityId: newId,
+      description: `${amc ? "Updated" : "Created"} AMC for ${clients.find((c) => c.id === form.client_id)?.company_name || "client"}`,
+    });
     toast.success(amc ? "AMC updated" : "AMC created");
     onSaved();
   };
@@ -259,6 +276,17 @@ function AmcDialog({
           <div className="col-span-2 space-y-2">
             <Label>Allocated Hours *</Label>
             <Input type="number" step="0.5" value={form.allocated_hours} onChange={(e) => setForm({ ...form, allocated_hours: e.target.value })} required />
+          </div>
+          <div className="col-span-2 space-y-2">
+            <Label>Notification Emails</Label>
+            <Input
+              value={form.notify_emails}
+              onChange={(e) => setForm({ ...form, notify_emails: e.target.value })}
+              placeholder="ops@client.com, manager@client.com"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Comma-separated. We auto-send alerts at 55%, 85%, and 100% hour usage.
+            </p>
           </div>
           <div className="col-span-2 space-y-2">
             <Label>Notes</Label>
