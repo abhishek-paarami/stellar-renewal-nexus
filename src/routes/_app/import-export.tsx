@@ -126,6 +126,11 @@ function ImportPanel() {
     const totalFail = out.reduce((s, x) => s + x.failed, 0);
     if (totalFail === 0) toast.success(`Imported ${totalOk} rows successfully`);
     else toast.warning(`Imported ${totalOk} rows · ${totalFail} failed`);
+    void logActivity({
+      action: "import", entity: "import_export",
+      description: `Imported ${totalOk} rows (${totalFail} failed) across ${out.length} sheet(s)`,
+      metadata: { sheets: out.map((o) => ({ kind: o.kind, ok: o.ok, failed: o.failed })) },
+    });
   };
 
   return (
