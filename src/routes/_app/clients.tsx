@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
+import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/_app/clients")({ component: ClientsPage });
 
@@ -46,8 +47,11 @@ function ClientsPage() {
 
   const del = async (id: string) => {
     if (!confirm("Delete this client?")) return;
+    const row = rows.find((r) => r.id === id);
     const { error } = await supabase.from("clients").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    void logActivity({ action: "delete", entity: "client", entityId: id,
+      description: `Deleted client "${row?.company_name || ""}"` });
     toast.success("Deleted"); void load();
   };
 
@@ -115,6 +119,10 @@ function ClientDialog({ open, onOpenChange, client, onSaved }: { open: boolean; 
     const res = client ? await supabase.from("clients").update(form).eq("id", client.id) : await supabase.from("clients").insert(form);
     setSaving(false);
     if (res.error) return toast.error(res.error.message);
+    void logActivity({
+      action: client ? "update" : "create", entity: "client", entityId: client?.id,
+      description: `${client ? "Updated" : "Created"} client "${form.company_name}"`,
+    });
     toast.success(client ? "Updated" : "Created"); onSaved();
   };
   return (

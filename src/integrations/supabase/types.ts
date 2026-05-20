@@ -70,6 +70,11 @@ export type Database = {
           id: string
           is_active: boolean
           notes: string | null
+          notify_emails: string[] | null
+          reminder_100_sent: boolean
+          reminder_55_sent: boolean
+          reminder_85_sent: boolean
+          reminder_expired_sent: boolean
           start_date: string
           updated_at: string
           updated_by: string | null
@@ -86,6 +91,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          notify_emails?: string[] | null
+          reminder_100_sent?: boolean
+          reminder_55_sent?: boolean
+          reminder_85_sent?: boolean
+          reminder_expired_sent?: boolean
           start_date: string
           updated_at?: string
           updated_by?: string | null
@@ -102,6 +112,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          notify_emails?: string[] | null
+          reminder_100_sent?: boolean
+          reminder_55_sent?: boolean
+          reminder_85_sent?: boolean
+          reminder_expired_sent?: boolean
           start_date?: string
           updated_at?: string
           updated_by?: string | null

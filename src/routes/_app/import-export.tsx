@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { logActivity } from "@/lib/activity-log";
 import {
   readSheet,
   pick,
@@ -126,6 +127,11 @@ function ImportPanel() {
     const totalFail = out.reduce((s, x) => s + x.failed, 0);
     if (totalFail === 0) toast.success(`Imported ${totalOk} rows successfully`);
     else toast.warning(`Imported ${totalOk} rows · ${totalFail} failed`);
+    void logActivity({
+      action: "import", entity: "import_export",
+      description: `Imported ${totalOk} rows (${totalFail} failed) across ${out.length} sheet(s)`,
+      metadata: { sheets: out.map((o) => ({ kind: o.kind, ok: o.ok, failed: o.failed })) },
+    });
   };
 
   return (
@@ -441,6 +447,7 @@ function ExportPanel() {
     if (error) return toast.error(error.message);
     downloadXlsx(`paarami-clients-${todayISO()}.xlsx`, [{ name: "Clients", rows: (data || []) as any[] }]);
     toast.success(`Exported ${data?.length ?? 0} clients`);
+    void logActivity({ action: "export", entity: "client", description: `Exported ${data?.length ?? 0} clients` });
   };
 
   const exportRenewals = async () => {
@@ -476,6 +483,7 @@ function ExportPanel() {
     }));
     downloadXlsx(`paarami-renewals-${todayISO()}.xlsx`, [{ name: "Renewals", rows }]);
     toast.success(`Exported ${rows.length} renewals`);
+    void logActivity({ action: "export", entity: "renewal", description: `Exported ${rows.length} renewals` });
   };
 
   const exportAmcByClient = async () => {
@@ -507,6 +515,7 @@ function ExportPanel() {
     if (sheets.length === 0) return toast.error("No AMC data to export");
     downloadXlsx(`paarami-amc-by-client-${todayISO()}.xlsx`, sheets);
     toast.success(`Exported AMCs for ${sheets.length} clients`);
+    void logActivity({ action: "export", entity: "amc_client", description: `Exported AMCs for ${sheets.length} clients` });
   };
 
   const exportTimeByClient = async () => {
@@ -541,6 +550,7 @@ function ExportPanel() {
     if (sheets.length === 0) return toast.error("No time entries to export");
     downloadXlsx(`paarami-time-entries-by-client-${todayISO()}.xlsx`, sheets);
     toast.success(`Exported time entries for ${sheets.length} clients`);
+    void logActivity({ action: "export", entity: "time_entry", description: `Exported time entries for ${sheets.length} clients` });
   };
 
   const cards = [

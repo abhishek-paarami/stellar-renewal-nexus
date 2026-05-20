@@ -16,6 +16,7 @@ import { Plus, Shield, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
+import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/_app/users")({ component: UsersPage });
 
@@ -46,12 +47,18 @@ function UsersPage() {
   const updateRole = async (id: string, role: "super_admin" | "manager") => {
     const { error } = await supabase.from("user_profiles").update({ role }).eq("id", id);
     if (error) return toast.error(error.message);
+    const u = rows.find((r) => r.id === id);
+    void logActivity({ action: "update", entity: "user", entityId: id,
+      description: `Changed role of ${u?.email || ""} to ${role}` });
     toast.success("Role updated"); void load();
   };
 
   const toggleActive = async (id: string, is_active: boolean) => {
     const { error } = await supabase.from("user_profiles").update({ is_active }).eq("id", id);
     if (error) return toast.error(error.message);
+    const u = rows.find((r) => r.id === id);
+    void logActivity({ action: "user_toggle_active", entity: "user", entityId: id,
+      description: `${is_active ? "Activated" : "Deactivated"} user ${u?.email || ""}` });
     toast.success(is_active ? "User activated" : "User deactivated"); void load();
   };
 
@@ -63,6 +70,8 @@ function UsersPage() {
     });
     if (error) return toast.error(error.message);
     if ((data as any)?.error) return toast.error((data as any).error);
+    void logActivity({ action: "user_delete", entity: "user", entityId: row.id,
+      description: `Deleted user ${row.email}` });
     toast.success("User deleted"); void load();
   };
 
@@ -168,6 +177,8 @@ function InviteDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenCh
     const em = (data as any)?.email;
     if (em?.sent) toast.success("User created — welcome email sent");
     else toast.success(`User created${em?.error ? ` (email failed: ${em.error})` : ""}`);
+    void logActivity({ action: "user_invite", entity: "user",
+      description: `Invited ${form.email} as ${form.role}` });
     setForm({ full_name: "", email: "", password: "", role: "manager" });
     onSaved();
   };
@@ -219,6 +230,8 @@ function ResetPasswordDialog({ target, onClose }: { target: ProfileRow; onClose:
     const em = (data as any)?.email;
     if (em?.sent) toast.success("Password reset — email sent to user");
     else toast.success(`Password reset${em?.error ? ` (email failed: ${em.error})` : ""}`);
+    void logActivity({ action: "user_reset_password", entity: "user", entityId: target.id,
+      description: `Reset password for ${target.email}` });
     onClose();
   };
   return (
