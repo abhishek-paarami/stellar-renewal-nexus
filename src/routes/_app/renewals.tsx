@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate, expiryStatus, statusColors } from "@/lib/format";
+import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/_app/renewals")({ component: RenewalsPage });
 
@@ -88,8 +89,11 @@ function RenewalsPage() {
 
   const del = async (id: string) => {
     if (!confirm("Delete this renewal?")) return;
+    const row = rows.find((r) => r.id === id);
     const { error } = await supabase.from("renewals").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    void logActivity({ action: "delete", entity: "renewal", entityId: id,
+      description: `Deleted renewal for domain "${row?.domain || ""}"` });
     toast.success("Deleted"); void load();
   };
 
@@ -312,6 +316,11 @@ function RenewalDialog({
     }
 
     setSaving(false);
+    void logActivity({
+      action: renewal ? "update" : "create",
+      entity: "renewal", entityId: renewalId,
+      description: `${renewal ? "Updated" : "Created"} renewal for "${form.domain}"`,
+    });
     toast.success(renewal ? "Updated" : "Created");
     onSaved();
   };
