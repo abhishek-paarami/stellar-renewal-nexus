@@ -177,6 +177,8 @@ function InviteDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenCh
     const em = (data as any)?.email;
     if (em?.sent) toast.success("User created — welcome email sent");
     else toast.success(`User created${em?.error ? ` (email failed: ${em.error})` : ""}`);
+    void logActivity({ action: "user_invite", entity: "user",
+      description: `Invited ${form.email} as ${form.role}` });
     setForm({ full_name: "", email: "", password: "", role: "manager" });
     onSaved();
   };
@@ -228,6 +230,8 @@ function ResetPasswordDialog({ target, onClose }: { target: ProfileRow; onClose:
     const em = (data as any)?.email;
     if (em?.sent) toast.success("Password reset — email sent to user");
     else toast.success(`Password reset${em?.error ? ` (email failed: ${em.error})` : ""}`);
+    void logActivity({ action: "user_reset_password", entity: "user", entityId: target.id,
+      description: `Reset password for ${target.email}` });
     onClose();
   };
   return (
