@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { logActivity } from "@/lib/activity-log";
 import {
   readSheet,
   pick,
