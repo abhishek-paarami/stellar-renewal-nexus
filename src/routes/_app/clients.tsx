@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
+import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/_app/clients")({ component: ClientsPage });
 
