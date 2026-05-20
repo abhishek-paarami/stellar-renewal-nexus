@@ -24,12 +24,13 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
-    const [{ data: smtpRow }, { data: remRow }, { data: tpls }, { data: renewals }, { data: clients }] = await Promise.all([
+    const [{ data: smtpRow }, { data: remRow }, { data: tpls }, { data: renewals }, { data: clients }, { data: amcs }] = await Promise.all([
       admin.from("app_settings").select("value").eq("key", "smtp").maybeSingle(),
       admin.from("app_settings").select("value").eq("key", "reminders").maybeSingle(),
       admin.from("email_templates").select("*"),
       admin.from("renewals").select("*"),
       admin.from("clients").select("id, company_name"),
+      admin.from("amc_clients").select("*"),
     ]);
 
     const smtp = (smtpRow?.value || {}) as Partial<SmtpConfig> & { enabled?: boolean };
@@ -122,6 +123,62 @@ Deno.serve(async (req) => {
             related_entity: "renewal", related_id: r.id,
           });
         }
+      }
+    }
+
+    // ---------------- AMC hour-usage reminders ----------------
+    for (const a of amcs || []) {
+      const allocated = Number(a.allocated_hours || 0);
+      const used = Number(a.consumed_hours || 0);
+      if (allocated <= 0) continue;
+
+      const recipients: string[] = (a.notify_emails || []).filter((e: string) => /@/.test(e));
+      if (!recipients.length) continue;
+
+      const pct = Math.min(100, Math.round((used / allocated) * 100));
+      const remaining = Math.max(0, allocated - used);
+
+      type Step = { thr: number; key: string; flag: string };
+      const steps: Step[] = [
+        { thr: 100, key: "amc_hours_100", flag: "reminder_100_sent" },
+        { thr: 85,  key: "amc_hours_85",  flag: "reminder_85_sent"  },
+        { thr: 55,  key: "amc_hours_55",  flag: "reminder_55_sent"  },
+      ];
+      const step = steps.find((s) => pct >= s.thr && !(a as any)[s.flag]);
+      if (!step) continue;
+
+      const tpl = tplMap[step.key];
+      if (!tpl) continue;
+
+      const vars = {
+        client_name: clientNameMap[a.client_id || ""] || "",
+        contact_person: a.contact_person || "Team",
+        allocated_hours: allocated,
+        used_hours: used,
+        remaining_hours: remaining,
+        usage_pct: pct,
+        end_date: a.end_date || "",
+      };
+      const subject = render(tpl.subject, vars);
+      const html = render(tpl.html, vars);
+
+      try {
+        const trace: string[] = [];
+        await sendMail(cfg, { to: recipients, cc, subject, html }, (l) => trace.push(l));
+        sent++;
+        await admin.from("amc_clients").update({ [step.flag]: true }).eq("id", a.id);
+        await admin.from("email_logs").insert({
+          email_type: "amc_reminder", to_addresses: recipients, cc_addresses: cc,
+          subject, status: "success", smtp_response: trace.slice(-15).join("\n"),
+          related_entity: "amc_client", related_id: a.id,
+        });
+      } catch (err: any) {
+        const errMsg = String(err?.message || err);
+        await admin.from("email_logs").insert({
+          email_type: "amc_reminder", to_addresses: recipients, cc_addresses: cc,
+          subject, status: "failed", error_message: errMsg,
+          related_entity: "amc_client", related_id: a.id,
+        });
       }
     }
 
