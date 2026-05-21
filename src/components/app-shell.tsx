@@ -11,6 +11,7 @@ import {
   Mail,
   Settings,
   Shield,
+  UserCog,
   LogOut,
   Bell,
   ChevronDown,
@@ -40,6 +41,7 @@ const NAV = [
   { to: "/credentials", label: "Credentials Vault", icon: KeyRound, role: "super_admin" as const },
   { to: "/email-templates", label: "Email Templates", icon: Mail, role: "super_admin" as const },
   { to: "/users", label: "User Management", icon: Shield, role: "super_admin" as const },
+  { to: "/people", label: "Developers & BD", icon: UserCog, role: "super_admin" as const },
   { to: "/import-export", label: "Import / Export", icon: FileSpreadsheet, role: "super_admin" as const },
   { to: "/settings", label: "Settings", icon: Settings, role: "super_admin" as const },
 ];
