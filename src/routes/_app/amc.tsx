@@ -170,7 +170,14 @@ function AmcPage() {
         </div>
       )}
 
-      <AmcDialog open={open} onOpenChange={setOpen} amc={editing} clients={clients} onSaved={() => { setOpen(false); void load(); }} />
+      <AmcDialog
+        open={open}
+        onOpenChange={setOpen}
+        amc={editing}
+        clients={clients}
+        existingClientIds={new Set(rows.map((r) => r.client_id).filter((x): x is string => !!x))}
+        onSaved={() => { setOpen(false); void load(); }}
+      />
     </div>
   );
 }
