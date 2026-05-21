@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import {
   LayoutDashboard,
@@ -28,6 +29,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useState } from "react";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { DelayedLoader } from "@/components/finger-loader";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, role: "all" as const },
@@ -47,6 +49,9 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [pwOpen, setPwOpen] = useState(false);
+  const isRouteLoading = useRouterState({
+    select: (s) => s.status === "pending" || s.isLoading || s.isTransitioning,
+  });
 
   const initials = (profile?.full_name || profile?.email || "?")
     .split(" ")
@@ -160,7 +165,10 @@ export function AppShell() {
         </header>
 
         <main className="flex-1 p-6">
-          <Outlet />
+          {isRouteLoading && <DelayedLoader delayMs={150} label="Loading" />}
+          <div key={location.pathname} className="min-h-[200px]">
+            <Outlet />
+          </div>
         </main>
       </div>
       <ChangePasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
