@@ -166,6 +166,13 @@ function EntryDialog({
   };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [devList, setDevList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    void supabase.from("developers").select("id, name").eq("is_active", true).order("name")
+      .then(({ data }) => setDevList((data || []) as any));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -200,6 +207,12 @@ function EntryDialog({
       : await supabase.from("time_entries").insert(payload);
     setSaving(false);
     if (res.error) return toast.error(res.error.message);
+    // Fire instant AMC threshold alert (55/85/100%) — non-blocking
+    if (form.status === "approved" && form.amc_client_id) {
+      void supabase.functions.invoke("send-amc-instant-alert", {
+        body: { amc_client_id: form.amc_client_id },
+      });
+    }
     void logActivity({
       action: entry ? "update" : "create",
       entity: "time_entry", entityId: entry?.id,
@@ -232,7 +245,15 @@ function EntryDialog({
             </Select>
           </div>
           <div className="space-y-2"><Label>Date *</Label><Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} required /></div>
-          <div className="space-y-2"><Label>Developer *</Label><Input value={form.developer_name} onChange={(e) => setForm({ ...form, developer_name: e.target.value })} required /></div>
+          <div className="space-y-2">
+            <Label>Developer *</Label>
+            <Select value={form.developer_name || undefined} onValueChange={(v) => setForm({ ...form, developer_name: v })}>
+              <SelectTrigger><SelectValue placeholder={devList.length ? "Select developer" : "Add developers in People"} /></SelectTrigger>
+              <SelectContent>
+                {devList.map((d) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2"><Label>Hours</Label><Input type="number" min="0" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} /></div>
           <div className="space-y-2"><Label>Minutes</Label><Input type="number" min="0" max="59" value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} /></div>
           <div className="space-y-2">
