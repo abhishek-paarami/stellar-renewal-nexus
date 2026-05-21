@@ -41,29 +41,32 @@ export const Route = createFileRoute("/_app/import-export")({ component: ImportE
 
 function ImportExportPage() {
   const { isSuperAdmin } = useAuth();
-  if (!isSuperAdmin)
-    return (
-      <div className="p-8 text-center text-muted-foreground">Super Admin access required.</div>
-    );
-
   return (
     <div>
       <PageHeader
         title="Import / Export"
-        description="Bulk import all your raw data from Excel — auto-detected & routed to the right tables. Export everything for backup or reporting."
+        description={
+          isSuperAdmin
+            ? "Bulk import raw data and export anything for backup or reporting."
+            : "Download per-module spreadsheets. Bulk import is restricted to Super Admin."
+        }
       />
-      <Tabs defaultValue="import">
+      <Tabs defaultValue={isSuperAdmin ? "import" : "export"}>
         <TabsList>
-          <TabsTrigger value="import">
-            <UploadCloud className="mr-2 h-4 w-4" /> Import
-          </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="import">
+              <UploadCloud className="mr-2 h-4 w-4" /> Import
+            </TabsTrigger>
+          )}
           <TabsTrigger value="export">
             <Download className="mr-2 h-4 w-4" /> Export
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="import">
-          <ImportPanel />
-        </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="import">
+            <ImportPanel />
+          </TabsContent>
+        )}
         <TabsContent value="export">
           <ExportPanel />
         </TabsContent>
