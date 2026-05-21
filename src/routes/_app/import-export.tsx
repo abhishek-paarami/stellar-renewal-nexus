@@ -41,29 +41,32 @@ export const Route = createFileRoute("/_app/import-export")({ component: ImportE
 
 function ImportExportPage() {
   const { isSuperAdmin } = useAuth();
-  if (!isSuperAdmin)
-    return (
-      <div className="p-8 text-center text-muted-foreground">Super Admin access required.</div>
-    );
-
   return (
     <div>
       <PageHeader
         title="Import / Export"
-        description="Bulk import all your raw data from Excel — auto-detected & routed to the right tables. Export everything for backup or reporting."
+        description={
+          isSuperAdmin
+            ? "Bulk import raw data and export anything for backup or reporting."
+            : "Download per-module spreadsheets. Bulk import is restricted to Super Admin."
+        }
       />
-      <Tabs defaultValue="import">
+      <Tabs defaultValue={isSuperAdmin ? "import" : "export"}>
         <TabsList>
-          <TabsTrigger value="import">
-            <UploadCloud className="mr-2 h-4 w-4" /> Import
-          </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="import">
+              <UploadCloud className="mr-2 h-4 w-4" /> Import
+            </TabsTrigger>
+          )}
           <TabsTrigger value="export">
             <Download className="mr-2 h-4 w-4" /> Export
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="import">
-          <ImportPanel />
-        </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="import">
+            <ImportPanel />
+          </TabsContent>
+        )}
         <TabsContent value="export">
           <ExportPanel />
         </TabsContent>
@@ -425,18 +428,32 @@ function todayISO() {
 /* ==================== EXPORT ==================== */
 
 function ExportPanel() {
+  const { isSuperAdmin } = useAuth();
   const [counts, setCounts] = useState<{ clients: number; renewals: number; amc: number; te: number } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [amcList, setAmcList] = useState<{ id: string; label: string }[]>([]);
+  const [singleAmcId, setSingleAmcId] = useState<string>("");
 
   useEffect(() => {
     void (async () => {
-      const [a, b, c, d] = await Promise.all([
+      const [a, b, c, d, amc, cli] = await Promise.all([
         supabase.from("clients").select("*", { count: "exact", head: true }),
         supabase.from("renewals").select("*", { count: "exact", head: true }),
         supabase.from("amc_clients").select("*", { count: "exact", head: true }),
         supabase.from("time_entries").select("*", { count: "exact", head: true }),
+        supabase.from("amc_clients").select("id, client_id, website"),
+        supabase.from("clients").select("id, company_name"),
       ]);
       setCounts({ clients: a.count ?? 0, renewals: b.count ?? 0, amc: c.count ?? 0, te: d.count ?? 0 });
+      const cmap = new Map((cli.data || []).map((x: any) => [x.id, x.company_name]));
+      setAmcList(
+        ((amc.data || []) as any[])
+          .map((x) => ({
+            id: x.id,
+            label: `${cmap.get(x.client_id) || "Unassigned"}${x.website ? ` · ${x.website}` : ""}`,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label))
+      );
     })();
   }, []);
 
@@ -452,12 +469,16 @@ function ExportPanel() {
 
   const exportRenewals = async () => {
     setBusy("renewals");
-    const [{ data: r }, { data: c }] = await Promise.all([
+    const [{ data: r }, { data: c }, credsRes] = await Promise.all([
       supabase.from("renewals").select("*").order("domain"),
       supabase.from("clients").select("id, company_name"),
+      isSuperAdmin
+        ? supabase.rpc("export_renewal_credentials")
+        : Promise.resolve({ data: [] as any[], error: null }),
     ]);
     setBusy(null);
     const cmap = new Map((c || []).map((x: any) => [x.id, x.company_name]));
+    const credMap = new Map(((credsRes?.data as any[]) || []).map((x: any) => [x.id, x]));
     const rows = (r || []).map((x: any) => ({
       Domain: x.domain,
       Client: x.client_id ? cmap.get(x.client_id) || "" : "",
@@ -477,8 +498,12 @@ function ExportPanel() {
       Client_Type: x.client_type,
       Panel_Type: x.panel_type,
       Admin_URL: x.admin_url,
+      Username: credMap.get(x.id)?.username || "",
+      Password: credMap.get(x.id)?.password || "",
       FTP_Host: x.ftp_host,
       FTP_Port: x.ftp_port,
+      FTP_Username: credMap.get(x.id)?.ftp_username || "",
+      FTP_Password: credMap.get(x.id)?.ftp_password || "",
       Notes: x.notes,
     }));
     downloadXlsx(`paarami-renewals-${todayISO()}.xlsx`, [{ name: "Renewals", rows }]);
@@ -486,7 +511,7 @@ function ExportPanel() {
     void logActivity({ action: "export", entity: "renewal", description: `Exported ${rows.length} renewals` });
   };
 
-  const exportAmcByClient = async () => {
+  const exportAmcAll = async () => {
     setBusy("amc");
     const [{ data: a }, { data: c }] = await Promise.all([
       supabase.from("amc_clients").select("*"),
@@ -494,31 +519,25 @@ function ExportPanel() {
     ]);
     setBusy(null);
     const cmap = new Map((c || []).map((x: any) => [x.id, x.company_name]));
-    const grouped = new Map<string, any[]>();
-    (a || []).forEach((x: any) => {
-      const name = (x.client_id && cmap.get(x.client_id)) || "Unassigned";
-      const arr = grouped.get(name) || [];
-      arr.push({
-        Website: x.website,
-        BD_Person: x.bd_person,
-        Start_Date: x.start_date,
-        End_Date: x.end_date,
-        Allocated_Hours: x.allocated_hours,
-        Consumed_Hours: x.consumed_hours,
-        Remaining_Hours: Number(x.allocated_hours) - Number(x.consumed_hours),
-        Active: x.is_active,
-        Notes: x.notes,
-      });
-      grouped.set(name, arr);
-    });
-    const sheets = Array.from(grouped.entries()).map(([name, rows]) => ({ name: safeFilename(name), rows }));
-    if (sheets.length === 0) return toast.error("No AMC data to export");
-    downloadXlsx(`paarami-amc-by-client-${todayISO()}.xlsx`, sheets);
-    toast.success(`Exported AMCs for ${sheets.length} clients`);
-    void logActivity({ action: "export", entity: "amc_client", description: `Exported AMCs for ${sheets.length} clients` });
+    const rows = (a || []).map((x: any) => ({
+      Client: (x.client_id && cmap.get(x.client_id)) || "Unassigned",
+      Website: x.website,
+      BD_Person: x.bd_person,
+      Start_Date: x.start_date,
+      End_Date: x.end_date,
+      Allocated_Hours: x.allocated_hours,
+      Consumed_Hours: x.consumed_hours,
+      Remaining_Hours: Number(x.allocated_hours) - Number(x.consumed_hours),
+      Active: x.is_active,
+      Notes: x.notes,
+    })).sort((a, b) => a.Client.localeCompare(b.Client));
+    if (rows.length === 0) return toast.error("No AMC data to export");
+    downloadXlsx(`paarami-amc-${todayISO()}.xlsx`, [{ name: "AMC Clients", rows }]);
+    toast.success(`Exported ${rows.length} AMC rows`);
+    void logActivity({ action: "export", entity: "amc_client", description: `Exported ${rows.length} AMC rows` });
   };
 
-  const exportTimeByClient = async () => {
+  const exportTimeAll = async () => {
     setBusy("te");
     const [{ data: t }, { data: a }, { data: c }] = await Promise.all([
       supabase.from("time_entries").select("*").order("entry_date", { ascending: false }),
@@ -553,6 +572,33 @@ function ExportPanel() {
     void logActivity({ action: "export", entity: "time_entry", description: `Exported time entries for ${sheets.length} clients` });
   };
 
+  const exportTimeForAmc = async () => {
+    if (!singleAmcId) return toast.error("Select an AMC client first");
+    setBusy("te-one");
+    const [{ data: t }, { data: a }, { data: c }] = await Promise.all([
+      supabase.from("time_entries").select("*").eq("amc_client_id", singleAmcId).order("entry_date", { ascending: false }),
+      supabase.from("amc_clients").select("id, client_id, website").eq("id", singleAmcId).maybeSingle(),
+      supabase.from("clients").select("id, company_name"),
+    ]);
+    setBusy(null);
+    const cmap = new Map((c || []).map((x: any) => [x.id, x.company_name]));
+    const amc = (a as any) || null;
+    const clientName = (amc && amc.client_id && cmap.get(amc.client_id)) || amc?.website || "AMC";
+    const rows = (t || []).map((x: any) => ({
+      Date: x.entry_date,
+      Developer: x.developer_name,
+      Hours: x.hours,
+      Minutes: x.minutes,
+      Total_Hours: Number(x.hours) + Number(x.minutes) / 60,
+      Billable: x.is_billable,
+      Status: x.status,
+      Description: x.work_description,
+    }));
+    downloadXlsx(`paarami-time-${safeFilename(clientName)}-${todayISO()}.xlsx`, [{ name: safeFilename(clientName), rows }]);
+    toast.success(`Exported ${rows.length} entries`);
+    void logActivity({ action: "export", entity: "time_entry", description: `Exported time entries for ${clientName}` });
+  };
+
   const cards = [
     {
       key: "clients",
@@ -565,18 +611,20 @@ function ExportPanel() {
     {
       key: "renewals",
       label: "All Renewals",
-      desc: "Domain, hosting, GA, contacts (no credentials).",
+      desc: isSuperAdmin
+        ? "Domain, hosting, GA, contacts — includes decrypted credentials (Super Admin)."
+        : "Domain, hosting, GA, contacts. Credentials are Super Admin only.",
       icon: RefreshCw,
       count: counts?.renewals,
       onClick: exportRenewals,
     },
     {
       key: "amc",
-      label: "AMC by Client",
-      desc: "One workbook · one sheet per client with their AMCs.",
+      label: "All AMC Clients",
+      desc: "Single sheet — every AMC contract in one place.",
       icon: Wrench,
       count: counts?.amc,
-      onClick: exportAmcByClient,
+      onClick: exportAmcAll,
     },
     {
       key: "te",
@@ -584,16 +632,17 @@ function ExportPanel() {
       desc: "One workbook · one sheet per client with all time entries.",
       icon: Clock,
       count: counts?.te,
-      onClick: exportTimeByClient,
+      onClick: exportTimeAll,
     },
   ];
 
   return (
-    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {cards.map((c) => {
-        const Icon = c.icon;
-        return (
-          <Card key={c.key} className="p-5">
+    <div className="mt-4 space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <Card key={c.key} className="p-5">
             <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
@@ -610,9 +659,36 @@ function ExportPanel() {
                 </Button>
               </div>
             </div>
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="p-5">
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold">Time Entries — single AMC client</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Pick one AMC client to download just their entries as a single sheet.</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <select
+                className="h-9 min-w-[280px] rounded-md border border-input bg-background px-3 text-sm"
+                value={singleAmcId}
+                onChange={(e) => setSingleAmcId(e.target.value)}
+              >
+                <option value="">Select AMC client…</option>
+                {amcList.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+              </select>
+              <Button size="sm" variant="outline" onClick={exportTimeForAmc} disabled={busy === "te-one" || !singleAmcId}>
+                {busy === "te-one" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download .xlsx
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

@@ -86,12 +86,20 @@ Deno.serve(async (req) => {
         const tpl = tplMap[templateKey];
         if (!tpl) continue;
 
+        const providerField =
+          k.field === "domain_expiry" ? "domain_provider"
+          : k.field === "hosting_expiry" ? "hosting_provider"
+          : "ga_provider";
+        const provider = (r as any)[providerField] || "";
         const vars = {
           client_name: clientNameMap[r.client_id || ""] || "",
           domain: r.domain,
           expiry_kind: k.label,
+          service_name: `${k.label} — ${r.domain || ""}`.trim(),
+          service_type: k.label,
+          service_provider: provider,
           expiry_date: date,
-          days_left: d,
+          days_left: d < 0 ? Math.abs(d) : d,
           contact_person: r.contact_person || "",
         };
         const subject = render(tpl.subject, vars);
@@ -158,6 +166,10 @@ Deno.serve(async (req) => {
         remaining_hours: remaining,
         usage_pct: pct,
         end_date: a.end_date || "",
+        // aliases used by new default templates
+        monthly_hours: allocated,
+        consumed_hours: used,
+        cycle_month: new Date().toLocaleString("en-IN", { month: "long", year: "numeric" }),
       };
       const subject = render(tpl.subject, vars);
       const html = render(tpl.html, vars);

@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Lock, Mail, ShieldCheck, Sparkles, Activity } from "lucide-react";
+import { ArrowRight, Lock, Mail, ShieldCheck, Sparkles, Activity, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FingerLoader } from "@/components/finger-loader";
 import { logActivity } from "@/lib/activity-log";
 
 export const Route = createFileRoute("/login")({
@@ -39,7 +38,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070d24] text-white">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#070d24] text-white">
       {/* Ambient gradient field */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -left-40 h-[640px] w-[640px] rounded-full bg-[radial-gradient(circle_at_center,rgba(80,120,255,0.35),transparent_60%)] blur-3xl" />
@@ -68,9 +67,9 @@ function LoginPage() {
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-10 lg:grid-cols-[1.05fr_minmax(380px,440px)] lg:gap-16 lg:px-10 lg:py-16">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl flex-1 items-center gap-12 px-6 py-10 lg:grid-cols-[1.05fr_minmax(380px,440px)] lg:gap-16 lg:px-10 lg:py-12">
         {/* Left: marketing pane */}
-        <section className="hidden flex-col justify-between lg:flex">
+        <section className="hidden flex-col justify-center lg:flex">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" />
@@ -78,9 +77,7 @@ function LoginPage() {
             </div>
             <h1 className="text-[44px] font-semibold leading-[1.05] tracking-tight xl:text-[56px]">
               One workspace for every<br />
-              <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-fuchsia-300 bg-clip-text text-transparent">
-                renewal, AMC, and client hour
-              </span>
+              <span style={{ color: "#FABC34" }}>renewal, AMC, and client hour</span>
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-white/65">
               The Paarami Internal Operations Portal centralizes domain & hosting renewals, AMC
@@ -97,19 +94,12 @@ function LoginPage() {
                   key={k}
                   className="group rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur transition hover:border-white/20 hover:bg-white/[0.05]"
                 >
-                  <Icon className="h-4 w-4 text-sky-300" />
+                  <Icon className="h-4 w-4" style={{ color: "#FABC34" }} />
                   <div className="mt-3 text-sm font-medium text-white">{k}</div>
                   <div className="mt-1 text-[11px] leading-snug text-white/55">{v}</div>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="mt-12 flex items-center justify-between text-[11px] text-white/40">
-            <span>© {new Date().getFullYear()} Paarami Digital. Internal use only.</span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-white/40" /> v1.0
-            </span>
           </div>
         </section>
 
@@ -129,7 +119,7 @@ function LoginPage() {
               <div>
                 <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Welcome back</div>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                  Sign in to continue
+                  Sign in to <span style={{ color: "#FABC34" }}>continue</span>
                 </h2>
                 <p className="mt-2 text-sm text-white/55">
                   Use the team credentials issued by your Super Admin.
@@ -181,7 +171,9 @@ function LoginPage() {
                   className="group h-11 w-full bg-white text-slate-900 shadow-lg shadow-black/30 hover:bg-white/90"
                 >
                   {submitting ? (
-                    <span className="inline-flex scale-[0.45] items-center"><FingerLoader /></span>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Signing in…
+                    </span>
                   ) : (
                     <span className="inline-flex items-center justify-center gap-2 text-sm font-semibold">
                       Sign in securely
@@ -201,6 +193,16 @@ function LoginPage() {
           </div>
         </section>
       </div>
+
+      {/* Footer pinned to bottom */}
+      <footer className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-6 text-[11px] text-white/40 lg:px-10">
+        <div className="flex items-center justify-between border-t border-white/10 pt-4">
+          <span>© {new Date().getFullYear()} Paarami Digital. Internal use only.</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-1 w-1 rounded-full bg-white/40" /> v1.0
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppTimeEntriesRouteImport } from './routes/_app/time-entries'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppRenewalsRouteImport } from './routes/_app/renewals'
+import { Route as AppPeopleRouteImport } from './routes/_app/people'
 import { Route as AppImportExportRouteImport } from './routes/_app/import-export'
 import { Route as AppEmailTemplatesRouteImport } from './routes/_app/email-templates'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -55,6 +56,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppRenewalsRoute = AppRenewalsRouteImport.update({
   id: '/renewals',
   path: '/renewals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeopleRoute = AppPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
   getParentRoute: () => AppRoute,
 } as any)
 const AppImportExportRoute = AppImportExportRouteImport.update({
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/email-templates': typeof AppEmailTemplatesRoute
   '/import-export': typeof AppImportExportRoute
+  '/people': typeof AppPeopleRoute
   '/renewals': typeof AppRenewalsRoute
   '/settings': typeof AppSettingsRoute
   '/time-entries': typeof AppTimeEntriesRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/email-templates': typeof AppEmailTemplatesRoute
   '/import-export': typeof AppImportExportRoute
+  '/people': typeof AppPeopleRoute
   '/renewals': typeof AppRenewalsRoute
   '/settings': typeof AppSettingsRoute
   '/time-entries': typeof AppTimeEntriesRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-templates': typeof AppEmailTemplatesRoute
   '/_app/import-export': typeof AppImportExportRoute
+  '/_app/people': typeof AppPeopleRoute
   '/_app/renewals': typeof AppRenewalsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/time-entries': typeof AppTimeEntriesRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/email-templates'
     | '/import-export'
+    | '/people'
     | '/renewals'
     | '/settings'
     | '/time-entries'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/email-templates'
     | '/import-export'
+    | '/people'
     | '/renewals'
     | '/settings'
     | '/time-entries'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/email-templates'
     | '/_app/import-export'
+    | '/_app/people'
     | '/_app/renewals'
     | '/_app/settings'
     | '/_app/time-entries'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRenewalsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/people': {
+      id: '/_app/people'
+      path: '/people'
+      fullPath: '/people'
+      preLoaderRoute: typeof AppPeopleRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/import-export': {
       id: '/_app/import-export'
       path: '/import-export'
@@ -287,6 +306,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailTemplatesRoute: typeof AppEmailTemplatesRoute
   AppImportExportRoute: typeof AppImportExportRoute
+  AppPeopleRoute: typeof AppPeopleRoute
   AppRenewalsRoute: typeof AppRenewalsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTimeEntriesRoute: typeof AppTimeEntriesRoute
@@ -300,6 +320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEmailTemplatesRoute: AppEmailTemplatesRoute,
   AppImportExportRoute: AppImportExportRoute,
+  AppPeopleRoute: AppPeopleRoute,
   AppRenewalsRoute: AppRenewalsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTimeEntriesRoute: AppTimeEntriesRoute,
@@ -316,12 +337,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

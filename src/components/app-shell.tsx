@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import {
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   Mail,
   Settings,
   Shield,
+  UserCog,
   LogOut,
   Bell,
   ChevronDown,
@@ -28,6 +30,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useState } from "react";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { DelayedLoader } from "@/components/finger-loader";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, role: "all" as const },
@@ -38,6 +41,7 @@ const NAV = [
   { to: "/credentials", label: "Credentials Vault", icon: KeyRound, role: "super_admin" as const },
   { to: "/email-templates", label: "Email Templates", icon: Mail, role: "super_admin" as const },
   { to: "/users", label: "User Management", icon: Shield, role: "super_admin" as const },
+  { to: "/people", label: "Developers & BD", icon: UserCog, role: "super_admin" as const },
   { to: "/import-export", label: "Import / Export", icon: FileSpreadsheet, role: "super_admin" as const },
   { to: "/settings", label: "Settings", icon: Settings, role: "super_admin" as const },
 ];
@@ -47,6 +51,9 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [pwOpen, setPwOpen] = useState(false);
+  const isRouteLoading = useRouterState({
+    select: (s) => s.status === "pending" || s.isLoading || s.isTransitioning,
+  });
 
   const initials = (profile?.full_name || profile?.email || "?")
     .split(" ")
@@ -160,7 +167,10 @@ export function AppShell() {
         </header>
 
         <main className="flex-1 p-6">
-          <Outlet />
+          {isRouteLoading && <DelayedLoader delayMs={150} label="Loading" />}
+          <div key={location.pathname} className="min-h-[200px]">
+            <Outlet />
+          </div>
         </main>
       </div>
       <ChangePasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
@@ -179,6 +189,7 @@ function titleFromPath(path: string): string {
     credentials: "Credentials Vault",
     "email-templates": "Email Templates",
     users: "User Management",
+    people: "Developers & BD",
     "import-export": "Import / Export",
     settings: "Settings",
   };

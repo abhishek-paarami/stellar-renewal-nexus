@@ -178,6 +178,30 @@ export type Database = {
           },
         ]
       }
+      bd_persons: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -288,6 +312,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      developers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
       }
       email_logs: {
         Row: {
@@ -657,6 +705,16 @@ export type Database = {
       }
       dec_text: { Args: { cipher: string }; Returns: string }
       enc_text: { Args: { plain: string }; Returns: string }
+      export_renewal_credentials: {
+        Args: never
+        Returns: {
+          ftp_password: string
+          ftp_username: string
+          id: string
+          password: string
+          username: string
+        }[]
+      }
       get_crypto_key: { Args: never; Returns: string }
       get_renewal_credentials: {
         Args: { _renewal_id: string }

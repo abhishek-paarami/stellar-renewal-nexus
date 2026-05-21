@@ -1,0 +1,110 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Trash2, Power } from "lucide-react";
+import { logActivity } from "@/lib/activity-log";
+
+export const Route = createFileRoute("/_app/people")({
+  component: PeoplePage,
+});
+
+type Row = { id: string; name: string; email: string | null; is_active: boolean };
+
+function ListEditor({ table, title }: { table: "developers" | "bd_persons"; title: string }) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  const load = async () => {
+    const { data, error } = await supabase.from(table).select("*").order("name");
+    if (error) return toast.error(error.message);
+    setRows((data || []) as Row[]);
+  };
+  useEffect(() => { void load(); }, []);
+
+  const add = async () => {
+    if (!name.trim()) return;
+    const { error } = await supabase.from(table).insert({ name: name.trim(), email: email.trim() || null });
+    if (error) return toast.error(error.message);
+    void logActivity({ action: "create", entity: "user", description: `Added ${title}: ${name}` });
+    setName(""); setEmail(""); void load();
+  };
+  const toggle = async (r: Row) => {
+    const { error } = await supabase.from(table).update({ is_active: !r.is_active }).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    void logActivity({ action: "update", entity: "user", description: `${r.is_active ? "Disabled" : "Enabled"} ${r.name}` });
+    void load();
+  };
+  const remove = async (r: Row) => {
+    if (!confirm(`Delete ${r.name}?`)) return;
+    const { error } = await supabase.from(table).delete().eq("id", r.id);
+    if (error) return toast.error(error.message);
+    void logActivity({ action: "delete", entity: "user", description: `Deleted ${r.name}` });
+    void load();
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" /></div>
+          <div><Label>Email (optional)</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@paaramidigital.com" /></div>
+          <div className="flex items-end"><Button onClick={add} className="w-full md:w-auto">Add</Button></div>
+        </div>
+        <div className="rounded-md border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-left">
+              <tr><th className="p-3">Name</th><th className="p-3">Email</th><th className="p-3">Status</th><th className="p-3 text-right">Actions</th></tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No entries yet.</td></tr>}
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="p-3 font-medium">{r.name}</td>
+                  <td className="p-3 text-muted-foreground">{r.email || "—"}</td>
+                  <td className="p-3">{r.is_active ? <Badge>Active</Badge> : <Badge variant="secondary">Disabled</Badge>}</td>
+                  <td className="p-3 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => toggle(r)}><Power className="mr-1 h-3.5 w-3.5" />{r.is_active ? "Disable" : "Enable"}</Button>
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => remove(r)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PeoplePage() {
+  const { isSuperAdmin } = useAuth();
+  if (!isSuperAdmin) {
+    return <div className="rounded-md border bg-card p-8 text-center text-muted-foreground">Super Admin access required.</div>;
+  }
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold">People Directory</h2>
+        <p className="text-sm text-muted-foreground">Manage Developers and BD Persons available as dropdowns across the portal.</p>
+      </div>
+      <Tabs defaultValue="dev">
+        <TabsList>
+          <TabsTrigger value="dev">Developers</TabsTrigger>
+          <TabsTrigger value="bd">BD Persons</TabsTrigger>
+        </TabsList>
+        <TabsContent value="dev" className="mt-4"><ListEditor table="developers" title="Developers" /></TabsContent>
+        <TabsContent value="bd" className="mt-4"><ListEditor table="bd_persons" title="BD Persons" /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}

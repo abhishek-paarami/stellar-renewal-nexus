@@ -170,16 +170,24 @@ function AmcPage() {
         </div>
       )}
 
-      <AmcDialog open={open} onOpenChange={setOpen} amc={editing} clients={clients} onSaved={() => { setOpen(false); void load(); }} />
+      <AmcDialog
+        open={open}
+        onOpenChange={setOpen}
+        amc={editing}
+        clients={clients}
+        existingClientIds={new Set(rows.map((r) => r.client_id).filter((x): x is string => !!x))}
+        onSaved={() => { setOpen(false); void load(); }}
+      />
     </div>
   );
 }
 
 function AmcDialog({
-  open, onOpenChange, amc, clients, onSaved,
+  open, onOpenChange, amc, clients, onSaved, existingClientIds,
 }: {
   open: boolean; onOpenChange: (o: boolean) => void; amc: AmcRow | null;
   clients: { id: string; company_name: string }[]; onSaved: () => void;
+  existingClientIds: Set<string>;
 }) {
   const [form, setForm] = useState({
     client_id: "", website: "", bd_person: "",
@@ -188,6 +196,13 @@ function AmcDialog({
     notify_emails: "",
   });
   const [saving, setSaving] = useState(false);
+  const [bdList, setBdList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    void supabase.from("bd_persons").select("id, name").eq("is_active", true).order("name")
+      .then(({ data }) => setBdList((data || []) as any));
+  }, [open]);
 
   useEffect(() => {
     if (amc) {
@@ -253,7 +268,14 @@ function AmcDialog({
             <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
               <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
               <SelectContent>
-                {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
+                {clients.map((c) => {
+                  const taken = existingClientIds.has(c.id) && c.id !== amc?.client_id;
+                  return (
+                    <SelectItem key={c.id} value={c.id} disabled={taken}>
+                      {c.company_name}{taken ? " — already in AMC" : ""}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -263,7 +285,12 @@ function AmcDialog({
           </div>
           <div className="space-y-2">
             <Label>BD Person</Label>
-            <Input value={form.bd_person} onChange={(e) => setForm({ ...form, bd_person: e.target.value })} />
+            <Select value={form.bd_person || undefined} onValueChange={(v) => setForm({ ...form, bd_person: v })}>
+              <SelectTrigger><SelectValue placeholder={bdList.length ? "Select BD person" : "Add BD persons in People"} /></SelectTrigger>
+              <SelectContent>
+                {bdList.map((b) => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Start Date *</Label>
