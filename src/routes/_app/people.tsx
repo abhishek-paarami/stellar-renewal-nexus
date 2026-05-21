@@ -34,20 +34,20 @@ function ListEditor({ table, title }: { table: "developers" | "bd_persons"; titl
     if (!name.trim()) return;
     const { error } = await supabase.from(table).insert({ name: name.trim(), email: email.trim() || null });
     if (error) return toast.error(error.message);
-    void logActivity({ action: "create", entity_type: table, description: `Added ${title}: ${name}` });
+    void logActivity({ action: "create", entity: "user", description: `Added ${title}: ${name}` });
     setName(""); setEmail(""); void load();
   };
   const toggle = async (r: Row) => {
     const { error } = await supabase.from(table).update({ is_active: !r.is_active }).eq("id", r.id);
     if (error) return toast.error(error.message);
-    void logActivity({ action: "update", entity_type: table, description: `${r.is_active ? "Disabled" : "Enabled"} ${r.name}` });
+    void logActivity({ action: "update", entity: "user", description: `${r.is_active ? "Disabled" : "Enabled"} ${r.name}` });
     void load();
   };
   const remove = async (r: Row) => {
     if (!confirm(`Delete ${r.name}?`)) return;
     const { error } = await supabase.from(table).delete().eq("id", r.id);
     if (error) return toast.error(error.message);
-    void logActivity({ action: "delete", entity_type: table, description: `Deleted ${r.name}` });
+    void logActivity({ action: "delete", entity: "user", description: `Deleted ${r.name}` });
     void load();
   };
 
