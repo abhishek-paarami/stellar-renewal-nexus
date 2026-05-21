@@ -189,6 +189,7 @@ function titleFromPath(path: string): string {
     credentials: "Credentials Vault",
     "email-templates": "Email Templates",
     users: "User Management",
+    people: "Developers & BD",
     "import-export": "Import / Export",
     settings: "Settings",
   };
