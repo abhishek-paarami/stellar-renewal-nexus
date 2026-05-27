@@ -31,6 +31,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+      { name: "googlebot", content: "noindex, nofollow" },
       { title: "Paarami Renewal + AMC Portal" },
       { name: "description", content: "Enterprise Renewal & AMC Management Portal for Paarami Digital." },
       { name: "author", content: "Paarami Digital" },

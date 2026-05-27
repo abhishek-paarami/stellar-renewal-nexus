@@ -18,7 +18,8 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
-    const { amc_client_id } = await req.json();
+    const body = await req.json();
+    const { amc_client_id, force } = body as { amc_client_id?: string; force?: boolean };
     if (!amc_client_id) return json({ error: "amc_client_id required" }, 400);
 
     const [{ data: a }, { data: smtpRow }, { data: remRow }, { data: tpls }] = await Promise.all([
@@ -28,20 +29,47 @@ Deno.serve(async (req) => {
       admin.from("email_templates").select("*"),
     ]);
     if (!a) return json({ error: "AMC client not found" }, 404);
+    if ((a as any).triggers_disabled) {
+      await admin.from("email_logs").insert({
+        email_type: "amc_instant", to_addresses: [], cc_addresses: [],
+        subject: "(skipped — triggers disabled)", status: "skipped",
+        error_message: "Email triggers disabled on this AMC",
+        related_entity: "amc_client", related_id: a.id,
+      });
+      return json({ sent: 0, reason: "triggers_disabled" });
+    }
 
     const allocated = Number(a.allocated_hours || 0);
     const used = Number(a.consumed_hours || 0);
     if (allocated <= 0) return json({ sent: 0, reason: "no allocation" });
 
     const pct = Math.min(100, Math.round((used / allocated) * 100));
-    type Step = { thr: number; key: string; flag: string };
-    const steps: Step[] = [
-      { thr: 100, key: "amc_hours_100", flag: "reminder_100_sent" },
-      { thr: 85,  key: "amc_hours_85",  flag: "reminder_85_sent"  },
-      { thr: 55,  key: "amc_hours_55",  flag: "reminder_55_sent"  },
-    ];
-    const step = steps.find((s) => pct >= s.thr && !(a as any)[s.flag]);
-    if (!step) return json({ sent: 0, reason: "no threshold crossed" });
+    // Read configurable thresholds
+    const remVal = (remRow?.value || {}) as { amc_percents?: string | number[] };
+    let percentsRaw = remVal.amc_percents ?? "55,85,100";
+    const percents: number[] = Array.isArray(percentsRaw)
+      ? percentsRaw.map(Number)
+      : String(percentsRaw).split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n));
+    percents.sort((x, y) => y - x); // descending
+    type Step = { thr: number; key: string; flag: string | null };
+    const steps: Step[] = percents.map((thr) => ({
+      thr,
+      key: `amc_hours_${thr}`,
+      flag:
+        thr === 100 ? "reminder_100_sent" :
+        thr === 85  ? "reminder_85_sent"  :
+        thr === 55  ? "reminder_55_sent"  : null,
+    }));
+    // When called instantly (from time-entry insert), bypass flag so the user always sees feedback.
+    const step = steps.find((s) => pct >= s.thr && (force || !s.flag || !(a as any)[s.flag]));
+    if (!step) {
+      await admin.from("email_logs").insert({
+        email_type: "amc_instant", to_addresses: [], cc_addresses: [],
+        subject: `(skipped — no threshold crossed at ${pct}%)`, status: "skipped",
+        related_entity: "amc_client", related_id: a.id,
+      });
+      return json({ sent: 0, reason: "no threshold crossed", pct });
+    }
 
     const smtp = (smtpRow?.value || {}) as Partial<SmtpConfig> & { enabled?: boolean };
     if (!smtp.host || !smtp.username || !smtp.password || !smtp.from_email || smtp.enabled === false) {
@@ -80,7 +108,7 @@ Deno.serve(async (req) => {
     try {
       const trace: string[] = [];
       await sendMail(cfg, { to: recipients, cc, subject, html }, (l) => trace.push(l));
-      await admin.from("amc_clients").update({ [step.flag]: true }).eq("id", a.id);
+      if (step.flag) await admin.from("amc_clients").update({ [step.flag]: true }).eq("id", a.id);
       await admin.from("email_logs").insert({
         email_type: "amc_instant", to_addresses: recipients, cc_addresses: cc,
         subject, status: "success", smtp_response: trace.slice(-15).join("\n"),
