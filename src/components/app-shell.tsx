@@ -70,9 +70,11 @@ export function AppShell() {
         style={{ background: "var(--gradient-sidebar)" }}
       >
         <div className="flex flex-col items-start gap-2 border-b border-sidebar-border/60 px-5 py-5">
-          <img src="/logo.png" alt="Paarami Digital" className="h-9 w-auto" />
-          <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+          <div className="text-base font-semibold text-sidebar-foreground tracking-tight">
             Internal Operations Portal
+          </div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+            Workspace
           </div>
         </div>
 
