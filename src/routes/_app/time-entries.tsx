@@ -210,7 +210,7 @@ function EntryDialog({
     // Fire instant AMC threshold alert (55/85/100%) — non-blocking
     if (form.status === "approved" && form.amc_client_id) {
       void supabase.functions.invoke("send-amc-instant-alert", {
-        body: { amc_client_id: form.amc_client_id },
+        body: { amc_client_id: form.amc_client_id, force: true },
       });
     }
     void logActivity({
