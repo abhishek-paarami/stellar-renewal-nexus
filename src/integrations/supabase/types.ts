@@ -76,6 +76,7 @@ export type Database = {
           reminder_85_sent: boolean
           reminder_expired_sent: boolean
           start_date: string
+          triggers_disabled: boolean
           updated_at: string
           updated_by: string | null
           website: string | null
@@ -97,6 +98,7 @@ export type Database = {
           reminder_85_sent?: boolean
           reminder_expired_sent?: boolean
           start_date: string
+          triggers_disabled?: boolean
           updated_at?: string
           updated_by?: string | null
           website?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           reminder_85_sent?: boolean
           reminder_expired_sent?: boolean
           start_date?: string
+          triggers_disabled?: boolean
           updated_at?: string
           updated_by?: string | null
           website?: string | null
@@ -491,6 +494,7 @@ export type Database = {
           reminder_7_sent: boolean
           reminder_expired_sent: boolean
           service_type: string | null
+          triggers_disabled: boolean
           updated_at: string
           updated_by: string | null
           username_enc: string | null
@@ -527,6 +531,7 @@ export type Database = {
           reminder_7_sent?: boolean
           reminder_expired_sent?: boolean
           service_type?: string | null
+          triggers_disabled?: boolean
           updated_at?: string
           updated_by?: string | null
           username_enc?: string | null
@@ -563,6 +568,7 @@ export type Database = {
           reminder_7_sent?: boolean
           reminder_expired_sent?: boolean
           service_type?: string | null
+          triggers_disabled?: boolean
           updated_at?: string
           updated_by?: string | null
           username_enc?: string | null
