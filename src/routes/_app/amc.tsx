@@ -47,6 +47,7 @@ interface AmcRow {
   is_active: boolean;
   notes: string | null;
   notify_emails: string[] | null;
+  triggers_disabled?: boolean;
 }
 
 function AmcPage() {
@@ -90,6 +91,18 @@ function AmcPage() {
     void load();
   };
 
+  const toggleTriggers = async (r: AmcRow) => {
+    const next = !r.triggers_disabled;
+    const { error } = await supabase.from("amc_clients" as any).update({ triggers_disabled: next } as any).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    void logActivity({
+      action: "update", entity: "amc_client", entityId: r.id,
+      description: `${next ? "Disabled" : "Re-enabled"} email triggers for AMC ${clientName(r.client_id)}`,
+    });
+    toast.success(next ? "Email triggers disabled" : "Email triggers re-enabled");
+    void load();
+  };
+
   return (
     <div>
       <PageHeader
@@ -123,6 +136,12 @@ function AmcPage() {
             const remaining = Math.max(0, total - used);
             const exp = expiryStatus(r.end_date);
             const hoursLow = remaining / Math.max(total, 1) <= 0.2;
+            const pctRounded = Math.round(pct);
+            const pctTone =
+              pctRounded >= 100 ? "bg-destructive/15 text-destructive border-destructive/40"
+              : pctRounded >= 85 ? "bg-destructive/10 text-destructive border-destructive/20"
+              : pctRounded >= 55 ? "bg-warning/15 text-warning border-warning/30"
+              : "bg-success/10 text-success border-success/20";
             return (
               <Card key={r.id} className="overflow-hidden">
                 <div className="flex items-start justify-between p-5">
@@ -157,12 +176,24 @@ function AmcPage() {
                       <div className="text-muted-foreground">Period</div>
                       <div className="mt-0.5 font-medium">{fmtDate(r.start_date)} → {fmtDate(r.end_date)}</div>
                     </div>
-                    <div>
-                      <div className="text-muted-foreground">Status</div>
-                      <Badge variant="outline" className={`${statusColors[exp.variant]} mt-0.5`}>{exp.label}</Badge>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <Badge variant="outline" className={`${statusColors[exp.variant]}`}>{exp.label}</Badge>
+                      <Badge variant="outline" className={`${pctTone} font-bold`}>{pctRounded}% used</Badge>
                     </div>
                   </div>
                   {r.bd_person && <div className="text-xs text-muted-foreground">BD: {r.bd_person}</div>}
+                  {isSuperAdmin && (
+                    <div className="flex items-center justify-between border-t border-border pt-3">
+                      <span className="text-[11px] text-muted-foreground">
+                        Email triggers: <span className={r.triggers_disabled ? "text-destructive font-medium" : "text-success font-medium"}>
+                          {r.triggers_disabled ? "DISABLED" : "Active"}
+                        </span>
+                      </span>
+                      <Button size="sm" variant="outline" onClick={() => toggleTriggers(r)}>
+                        {r.triggers_disabled ? "Enable" : "Disable"} triggers
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Card>
             );
