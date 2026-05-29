@@ -54,7 +54,6 @@ function LoginPage() {
             <img src="/logo.png" alt="Paarami Digital" className="h-7 w-auto" />
           </div>
           <div className="hidden flex-col leading-tight sm:flex">
-            <span className="text-[10px] uppercase tracking-[0.32em] text-white/50">Paarami Digital</span>
             <span className="text-sm font-medium text-white/80">Internal Operations Portal</span>
           </div>
         </div>
