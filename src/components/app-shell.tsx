@@ -69,12 +69,17 @@ export function AppShell() {
         className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border lg:flex"
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className="flex flex-col items-start gap-2 border-b border-sidebar-border/60 px-5 py-5">
-          <div className="text-base font-semibold text-sidebar-foreground tracking-tight">
-            Internal Operations Portal
+        <div className="flex flex-col items-start gap-3 border-b border-sidebar-border/60 px-5 py-5">
+          <div className="rounded-xl bg-white/[0.04] p-2 ring-1 ring-white/10">
+            <img src="/logo.png" alt="Paarami Digital" className="h-8 w-auto" />
           </div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
-            Workspace
+          <div>
+            <div className="text-base font-semibold text-sidebar-foreground tracking-tight">
+              Internal Operations Portal
+            </div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+              Workspace
+            </div>
           </div>
         </div>
 
