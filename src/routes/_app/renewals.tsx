@@ -45,6 +45,7 @@ interface RenewalRow {
   admin_url: string | null;
   ftp_host: string | null;
   ftp_port: number | null;
+  triggers_disabled?: boolean;
 }
 
 type Filter = "all" | "expired" | "critical" | "warning" | "ok";
@@ -95,6 +96,18 @@ function RenewalsPage() {
     void logActivity({ action: "delete", entity: "renewal", entityId: id,
       description: `Deleted renewal for domain "${row?.domain || ""}"` });
     toast.success("Deleted"); void load();
+  };
+
+  const toggleTriggers = async (r: RenewalRow) => {
+    const next = !r.triggers_disabled;
+    const { error } = await supabase.from("renewals" as any).update({ triggers_disabled: next } as any).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    void logActivity({
+      action: "update", entity: "renewal", entityId: r.id,
+      description: `${next ? "Disabled" : "Re-enabled"} email triggers for ${r.domain}`,
+    });
+    toast.success(next ? "Email triggers disabled" : "Email triggers re-enabled");
+    void load();
   };
 
   return (
