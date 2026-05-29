@@ -252,6 +252,7 @@ function RenewalDialog({
   };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const { isSuperAdmin } = useAuth();
 
   useEffect(() => {
     if (!open) return;
@@ -280,6 +281,22 @@ function RenewalDialog({
         ftp_host: renewal.ftp_host ?? "",
         ftp_port: renewal.ftp_port?.toString() ?? "",
       });
+      // Super Admin: load decrypted credentials so the form shows existing values
+      if (isSuperAdmin) {
+        void (async () => {
+          const { data, error } = await supabase.rpc("get_renewal_credentials", { _renewal_id: renewal.id });
+          if (error) return;
+          const c: any = Array.isArray(data) ? data[0] : data;
+          if (!c) return;
+          setForm((f) => ({
+            ...f,
+            username: c.username ?? "",
+            password: c.password ?? "",
+            ftp_username: c.ftp_username ?? "",
+            ftp_password: c.ftp_password ?? "",
+          }));
+        })();
+      }
     } else setForm(empty);
   }, [renewal, open]);
 
