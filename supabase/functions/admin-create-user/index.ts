@@ -68,7 +68,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = body.action || "create";
-    const portalUrl = req.headers.get("origin") || "https://stellar-renewal-nexus.lovable.app";
+    // Always use the production portal URL so links in emails open the deployed portal,
+    // not the lovable preview or dev origin. Super Admin can override via app_settings.portal_url.
+    const { data: portalRow } = await admin.from("app_settings").select("value").eq("key", "portal_url").maybeSingle();
+    const portalUrl: string =
+      (portalRow?.value as any)?.url ||
+      "https://stellar-renewal-nexus.lovable.app";
 
     if (action === "create") {
       const { email, password, full_name, role } = body;
@@ -124,7 +129,14 @@ Deno.serve(async (req) => {
       const { data: target } = await admin.from("user_profiles").select("email, full_name").eq("id", user_id).maybeSingle();
       if (!target) return json({ error: "User not found" }, 404);
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
-      if (error) return json({ error: error.message }, 400);
+      if (error) {
+        // Surface auth-side message (HIBP, length, etc.) and log it
+        await admin.from("activity_logs").insert({
+          user_id: ures.user.id, action_type: "reset_password_failed", entity_type: "user_profile",
+          entity_id: user_id, description: `Reset password FAILED for ${target.email}: ${error.message}`,
+        });
+        return json({ error: `Auth update failed: ${error.message}` }, 400);
+      }
       await admin.from("activity_logs").insert({
         user_id: ures.user.id, action_type: "reset_password", entity_type: "user_profile",
         entity_id: user_id, description: `Reset password for ${target.email}`,

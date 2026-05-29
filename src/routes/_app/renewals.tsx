@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Search, RefreshCw, KeyRound, Eye, EyeOff, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, KeyRound, Eye, EyeOff, Copy, Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
@@ -45,6 +45,7 @@ interface RenewalRow {
   admin_url: string | null;
   ftp_host: string | null;
   ftp_port: number | null;
+  triggers_disabled?: boolean;
 }
 
 type Filter = "all" | "expired" | "critical" | "warning" | "ok";
@@ -95,6 +96,18 @@ function RenewalsPage() {
     void logActivity({ action: "delete", entity: "renewal", entityId: id,
       description: `Deleted renewal for domain "${row?.domain || ""}"` });
     toast.success("Deleted"); void load();
+  };
+
+  const toggleTriggers = async (r: RenewalRow) => {
+    const next = !r.triggers_disabled;
+    const { error } = await supabase.from("renewals" as any).update({ triggers_disabled: next } as any).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    void logActivity({
+      action: "update", entity: "renewal", entityId: r.id,
+      description: `${next ? "Disabled" : "Re-enabled"} email triggers for ${r.domain}`,
+    });
+    toast.success(next ? "Email triggers disabled" : "Email triggers re-enabled");
+    void load();
   };
 
   return (
@@ -181,6 +194,17 @@ function RenewalsPage() {
                                 <KeyRound className="h-4 w-4" />
                               </Button>
                             )}
+                            {isSuperAdmin && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => toggleTriggers(r)}
+                                title={r.triggers_disabled ? "Re-enable email triggers" : "Disable email triggers"}
+                                className={r.triggers_disabled ? "text-destructive" : ""}
+                              >
+                                {r.triggers_disabled ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                              </Button>
+                            )}
                             <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -228,6 +252,7 @@ function RenewalDialog({
   };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const { isSuperAdmin } = useAuth();
 
   useEffect(() => {
     if (!open) return;
@@ -256,6 +281,22 @@ function RenewalDialog({
         ftp_host: renewal.ftp_host ?? "",
         ftp_port: renewal.ftp_port?.toString() ?? "",
       });
+      // Super Admin: load decrypted credentials so the form shows existing values
+      if (isSuperAdmin) {
+        void (async () => {
+          const { data, error } = await supabase.rpc("get_renewal_credentials", { _renewal_id: renewal.id });
+          if (error) return;
+          const c: any = Array.isArray(data) ? data[0] : data;
+          if (!c) return;
+          setForm((f) => ({
+            ...f,
+            username: c.username ?? "",
+            password: c.password ?? "",
+            ftp_username: c.ftp_username ?? "",
+            ftp_password: c.ftp_password ?? "",
+          }));
+        })();
+      }
     } else setForm(empty);
   }, [renewal, open]);
 
