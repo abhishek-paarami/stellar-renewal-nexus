@@ -194,6 +194,17 @@ function RenewalsPage() {
                                 <KeyRound className="h-4 w-4" />
                               </Button>
                             )}
+                            {isSuperAdmin && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => toggleTriggers(r)}
+                                title={r.triggers_disabled ? "Re-enable email triggers" : "Disable email triggers"}
+                                className={r.triggers_disabled ? "text-destructive" : ""}
+                              >
+                                {r.triggers_disabled ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                              </Button>
+                            )}
                             <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
