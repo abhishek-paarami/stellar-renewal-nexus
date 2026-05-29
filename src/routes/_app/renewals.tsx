@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, Search, RefreshCw, KeyRound, Eye, EyeOff, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, KeyRound, Eye, EyeOff, Copy, Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
