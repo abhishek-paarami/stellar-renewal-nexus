@@ -75,6 +75,7 @@ export type Database = {
           reminder_55_sent: boolean
           reminder_85_sent: boolean
           reminder_expired_sent: boolean
+          sent_thresholds: Json
           start_date: string
           triggers_disabled: boolean
           updated_at: string
@@ -97,6 +98,7 @@ export type Database = {
           reminder_55_sent?: boolean
           reminder_85_sent?: boolean
           reminder_expired_sent?: boolean
+          sent_thresholds?: Json
           start_date: string
           triggers_disabled?: boolean
           updated_at?: string
@@ -119,6 +121,7 @@ export type Database = {
           reminder_55_sent?: boolean
           reminder_85_sent?: boolean
           reminder_expired_sent?: boolean
+          sent_thresholds?: Json
           start_date?: string
           triggers_disabled?: boolean
           updated_at?: string
@@ -316,6 +319,30 @@ export type Database = {
           },
         ]
       }
+      custom_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          name?: string
+        }
+        Relationships: []
+      }
       developers: {
         Row: {
           created_at: string
@@ -493,6 +520,7 @@ export type Database = {
           reminder_30_sent: boolean
           reminder_7_sent: boolean
           reminder_expired_sent: boolean
+          sent_thresholds: Json
           service_type: string | null
           triggers_disabled: boolean
           updated_at: string
@@ -530,6 +558,7 @@ export type Database = {
           reminder_30_sent?: boolean
           reminder_7_sent?: boolean
           reminder_expired_sent?: boolean
+          sent_thresholds?: Json
           service_type?: string | null
           triggers_disabled?: boolean
           updated_at?: string
@@ -567,6 +596,7 @@ export type Database = {
           reminder_30_sent?: boolean
           reminder_7_sent?: boolean
           reminder_expired_sent?: boolean
+          sent_thresholds?: Json
           service_type?: string | null
           triggers_disabled?: boolean
           updated_at?: string
@@ -670,6 +700,7 @@ export type Database = {
       user_profiles: {
         Row: {
           created_at: string
+          custom_role_id: string | null
           email: string
           full_name: string
           id: string
@@ -680,6 +711,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_role_id?: string | null
           email: string
           full_name: string
           id: string
@@ -690,6 +722,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_role_id?: string | null
           email?: string
           full_name?: string
           id?: string
@@ -698,7 +731,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
