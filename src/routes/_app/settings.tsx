@@ -17,6 +17,37 @@ import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app/settings")({ component: SettingsPage });
 
+// Default professional template body used when auto-seeding new thresholds.
+function defaultBody(kind: "renewal" | "amc", value: number) {
+  if (kind === "renewal") {
+    return {
+      key: `renewal_${value}`,
+      subject: `Reminder: {{service_name}} expires in ${value} day${value === 1 ? "" : "s"}`,
+      html: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#0f172a;margin:0 0 12px">Renewal due in <span style="color:#b91c1c">{{days_left}} day${value === 1 ? "" : "s"}</span></h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">Your <b>{{expiry_kind}}</b> for <b>{{domain}}</b> expires on <b>{{expiry_date}}</b>.</p><p style="color:#b91c1c;font-weight:600">Please initiate renewal to avoid service disruption.</p><p style="color:#94a3b8;font-size:12px;margin-top:24px">— Paarami Digital Operations</p></div>`,
+    };
+  }
+  return {
+    key: `amc_hours_${value}`,
+    subject: `AMC usage alert: {{client_name}} reached ${value}%`,
+    html: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#0f172a;margin:0 0 12px">AMC Usage Alert — <span style="color:#b91c1c">${value}% consumed</span></h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">Your AMC for <b>{{client_name}}</b> ({{cycle_month}}) has used <b>{{used_hours}}/{{allocated_hours}} hours</b> (<b>{{usage_pct}}%</b>).</p><p style="color:#b91c1c;font-weight:600">Remaining: {{remaining_hours}} hours.</p><p style="color:#94a3b8;font-size:12px;margin-top:24px">— Paarami Digital Operations</p></div>`,
+  };
+}
+
+async function autoSeedTemplates(days: number[], percents: number[]) {
+  const { data: existing } = await supabase.from("email_templates").select("template_key");
+  const have = new Set((existing || []).map((t: any) => t.template_key));
+  const rows: any[] = [];
+  for (const d of days) {
+    const t = defaultBody("renewal", d);
+    if (!have.has(t.key)) rows.push({ template_key: t.key, subject: t.subject, html_body: t.html });
+  }
+  for (const p of percents) {
+    const t = defaultBody("amc", p);
+    if (!have.has(t.key)) rows.push({ template_key: t.key, subject: t.subject, html_body: t.html });
+  }
+  if (rows.length) await supabase.from("email_templates").insert(rows);
+}
+
 function SettingsPage() {
   const { isSuperAdmin } = useAuth();
   if (!isSuperAdmin) return <div className="p-8 text-center text-muted-foreground">Super Admin access required.</div>;
