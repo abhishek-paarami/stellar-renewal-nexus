@@ -100,6 +100,12 @@ function RenewalsPage() {
 
   const toggleTriggers = async (r: RenewalRow) => {
     const next = !r.triggers_disabled;
+    if (next) {
+      const ok = confirm(
+        `⚠ Disable email triggers for ${r.domain}?\n\nNo automatic renewal reminders (client OR internal CC) will be sent for this entry until you re-enable.\n\nContinue?`,
+      );
+      if (!ok) return;
+    }
     const { error } = await supabase.from("renewals" as any).update({ triggers_disabled: next } as any).eq("id", r.id);
     if (error) return toast.error(error.message);
     void logActivity({

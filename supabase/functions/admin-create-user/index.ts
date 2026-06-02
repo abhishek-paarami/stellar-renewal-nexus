@@ -125,17 +125,18 @@ Deno.serve(async (req) => {
 
     if (action === "reset_password") {
       const { user_id, password } = body;
-      if (!user_id || !password) return json({ error: "Missing fields" }, 400);
+      if (!user_id || !password) return json({ success: false, error: "Missing fields" }, 200);
       const { data: target } = await admin.from("user_profiles").select("email, full_name").eq("id", user_id).maybeSingle();
-      if (!target) return json({ error: "User not found" }, 404);
+      if (!target) return json({ success: false, error: "User not found" }, 200);
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) {
-        // Surface auth-side message (HIBP, length, etc.) and log it
+        // Surface auth-side message (HIBP, length, etc.) with status 200 so the
+        // browser SDK doesn't swallow the body as a generic "non-2xx" error.
         await admin.from("activity_logs").insert({
           user_id: ures.user.id, action_type: "reset_password_failed", entity_type: "user_profile",
           entity_id: user_id, description: `Reset password FAILED for ${target.email}: ${error.message}`,
         });
-        return json({ error: `Auth update failed: ${error.message}` }, 400);
+        return json({ success: false, error: error.message }, 200);
       }
       await admin.from("activity_logs").insert({
         user_id: ures.user.id, action_type: "reset_password", entity_type: "user_profile",
