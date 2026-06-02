@@ -51,17 +51,11 @@ Deno.serve(async (req) => {
       ? percentsRaw.map(Number)
       : String(percentsRaw).split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n));
     percents.sort((x, y) => y - x); // descending
-    type Step = { thr: number; key: string; flag: string | null };
-    const steps: Step[] = percents.map((thr) => ({
-      thr,
-      key: `amc_hours_${thr}`,
-      flag:
-        thr === 100 ? "reminder_100_sent" :
-        thr === 85  ? "reminder_85_sent"  :
-        thr === 55  ? "reminder_55_sent"  : null,
-    }));
-    // When called instantly (from time-entry insert), bypass flag so the user always sees feedback.
-    const step = steps.find((s) => pct >= s.thr && (force || !s.flag || !(a as any)[s.flag]));
+    // sent_thresholds is the dynamic dedup store (jsonb array of integers).
+    const sentArr: number[] = Array.isArray((a as any).sent_thresholds) ? (a as any).sent_thresholds.map(Number) : [];
+    const step = percents
+      .map((thr) => ({ thr, key: `amc_hours_${thr}` }))
+      .find((s) => pct >= s.thr && (force || !sentArr.includes(s.thr)));
     if (!step) {
       await admin.from("email_logs").insert({
         email_type: "amc_instant", to_addresses: [], cc_addresses: [],
@@ -108,7 +102,9 @@ Deno.serve(async (req) => {
     try {
       const trace: string[] = [];
       await sendMail(cfg, { to: recipients, cc, subject, html }, (l) => trace.push(l));
-      if (step.flag) await admin.from("amc_clients").update({ [step.flag]: true }).eq("id", a.id);
+      // Record this threshold in sent_thresholds (dedup across cron + instant).
+      const nextSent = Array.from(new Set([...sentArr, step.thr]));
+      await admin.from("amc_clients").update({ sent_thresholds: nextSent } as any).eq("id", a.id);
       await admin.from("email_logs").insert({
         email_type: "amc_instant", to_addresses: recipients, cc_addresses: cc,
         subject, status: "success", smtp_response: trace.slice(-15).join("\n"),

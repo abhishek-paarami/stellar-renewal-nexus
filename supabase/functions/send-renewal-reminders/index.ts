@@ -44,10 +44,16 @@ Deno.serve(async (req) => {
       from_email: smtp.from_email, from_name: smtp.from_name,
     };
 
-    const settings = (remRow?.value || {}) as { days_before?: string; send_after_expiry?: boolean; cc_internal?: string };
-    const thresholds = (settings.days_before || "30,7,1").split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n));
+    const settings = (remRow?.value || {}) as { days_before?: string; renewal_days?: number[]; amc_percents?: number[] | string; send_after_expiry?: boolean; cc_internal?: string };
+    const thresholds = Array.isArray(settings.renewal_days) && settings.renewal_days.length
+      ? settings.renewal_days
+      : (settings.days_before || "30,7,1").split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n));
     const sendExpired = settings.send_after_expiry !== false;
     const cc = (settings.cc_internal || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const amcPercents = (Array.isArray(settings.amc_percents)
+      ? settings.amc_percents
+      : String(settings.amc_percents || "55,85,100").split(",").map((s) => parseInt(s.trim()))
+    ).filter((n) => !isNaN(n) && n > 0).sort((a, b) => b - a);
 
     const tplMap: Record<string, { subject: string; html: string }> = {};
     for (const t of tpls || []) tplMap[t.template_key] = { subject: t.subject, html: t.html_body };
@@ -63,6 +69,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     for (const r of renewals || []) {
+      if ((r as any).triggers_disabled) continue;
       const recipients: string[] = (r.contact_emails || []).filter((e: string) => /@/.test(e));
       if (!recipients.length) continue;
 
@@ -72,18 +79,19 @@ Deno.serve(async (req) => {
         const d = daysUntil(date);
 
         let templateKey: string | null = null;
-        let flagField: string | null = null;
+        let thresholdValue: number | null = null;
+        const sentArr: number[] = Array.isArray((r as any).sent_thresholds?.[k.field])
+          ? (r as any).sent_thresholds[k.field].map(Number)
+          : [];
 
-        if (d < 0 && sendExpired && !r.reminder_expired_sent) {
-          templateKey = "renewal_expired"; flagField = "reminder_expired_sent";
-        } else if (thresholds.includes(d)) {
-          if (d === 30 && !r.reminder_30_sent) { templateKey = "renewal_30"; flagField = "reminder_30_sent"; }
-          else if (d === 7 && !r.reminder_7_sent) { templateKey = "renewal_7"; flagField = "reminder_7_sent"; }
-          else if (d === 1 && !r.reminder_1_sent) { templateKey = "renewal_1"; flagField = "reminder_1_sent"; }
+        if (d < 0 && sendExpired && !sentArr.includes(-1)) {
+          templateKey = "renewal_expired"; thresholdValue = -1;
+        } else if (thresholds.includes(d) && !sentArr.includes(d)) {
+          templateKey = `renewal_${d}`; thresholdValue = d;
         }
-        if (!templateKey || !flagField) continue;
+        if (!templateKey || thresholdValue === null) continue;
 
-        const tpl = tplMap[templateKey];
+        const tpl = tplMap[templateKey] || tplMap[`renewal_${d}`] || tplMap["renewal_30"];
         if (!tpl) continue;
 
         const providerField =
@@ -109,7 +117,10 @@ Deno.serve(async (req) => {
           const trace: string[] = [];
           await sendMail(cfg, { to: recipients, cc, subject, html }, (l) => trace.push(l));
           sent++;
-          await admin.from("renewals").update({ [flagField]: true }).eq("id", r.id);
+          // Persist in sent_thresholds.{field}: [...]
+          const allSent = (r as any).sent_thresholds || {};
+          allSent[k.field] = Array.from(new Set([...((allSent[k.field] as number[]) || []), thresholdValue!]));
+          await admin.from("renewals").update({ sent_thresholds: allSent } as any).eq("id", r.id);
           await admin.from("reminder_logs").insert({
             renewal_id: r.id, reminder_type: templateKey, expiry_kind: k.label,
             sent_to: recipients, status: "success",
@@ -136,6 +147,7 @@ Deno.serve(async (req) => {
 
     // ---------------- AMC hour-usage reminders ----------------
     for (const a of amcs || []) {
+      if ((a as any).triggers_disabled) continue;
       const allocated = Number(a.allocated_hours || 0);
       const used = Number(a.consumed_hours || 0);
       if (allocated <= 0) continue;
@@ -146,13 +158,10 @@ Deno.serve(async (req) => {
       const pct = Math.min(100, Math.round((used / allocated) * 100));
       const remaining = Math.max(0, allocated - used);
 
-      type Step = { thr: number; key: string; flag: string };
-      const steps: Step[] = [
-        { thr: 100, key: "amc_hours_100", flag: "reminder_100_sent" },
-        { thr: 85,  key: "amc_hours_85",  flag: "reminder_85_sent"  },
-        { thr: 55,  key: "amc_hours_55",  flag: "reminder_55_sent"  },
-      ];
-      const step = steps.find((s) => pct >= s.thr && !(a as any)[s.flag]);
+      const sentArr: number[] = Array.isArray((a as any).sent_thresholds) ? (a as any).sent_thresholds.map(Number) : [];
+      const step = amcPercents
+        .map((thr) => ({ thr, key: `amc_hours_${thr}` }))
+        .find((s) => pct >= s.thr && !sentArr.includes(s.thr));
       if (!step) continue;
 
       const tpl = tplMap[step.key];
@@ -178,7 +187,8 @@ Deno.serve(async (req) => {
         const trace: string[] = [];
         await sendMail(cfg, { to: recipients, cc, subject, html }, (l) => trace.push(l));
         sent++;
-        await admin.from("amc_clients").update({ [step.flag]: true }).eq("id", a.id);
+        const nextSent = Array.from(new Set([...sentArr, step.thr]));
+        await admin.from("amc_clients").update({ sent_thresholds: nextSent } as any).eq("id", a.id);
         await admin.from("email_logs").insert({
           email_type: "amc_reminder", to_addresses: recipients, cc_addresses: cc,
           subject, status: "success", smtp_response: trace.slice(-15).join("\n"),
