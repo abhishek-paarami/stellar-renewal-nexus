@@ -302,16 +302,23 @@ function ReminderPanel() {
 }
 
 function ReminderLogs() {
+  const f = useLogFilter("30d");
   const [logs, setLogs] = useState<any[]>([]);
-  useEffect(() => {
-    void (async () => {
-      const { data } = await supabase.from("reminder_logs").select("*").order("sent_at", { ascending: false }).limit(100);
-      setLogs(data || []);
-    })();
-  }, []);
+  const load = async () => {
+    let q = supabase.from("reminder_logs").select("*").order("sent_at", { ascending: false }).limit(500);
+    if (f.range.from) q = q.gte("sent_at", f.range.from);
+    if (f.range.to)   q = q.lte("sent_at", f.range.to);
+    const { data } = await q;
+    setLogs(data || []);
+  };
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [f.preset, f.from, f.to]);
   return (
     <Card className="mt-4 overflow-hidden">
-      <div className="border-b border-border px-5 py-3 text-sm font-medium">Recent Reminder Sends</div>
+      <LogFilterBar {...f} onExport={() => downloadCsv("reminder-logs.csv", logs, [
+        { key: "sent_at", label: "When" }, { key: "reminder_type", label: "Type" },
+        { key: "expiry_kind", label: "Kind" }, { key: "sent_to", label: "To" },
+        { key: "status", label: "Status" }, { key: "error_message", label: "Error" },
+      ])} />
       <table className="w-full text-sm">
         <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
           <tr><th className="px-4 py-3 text-left">When</th><th className="px-4 py-3 text-left">Type</th><th className="px-4 py-3 text-left">Kind</th><th className="px-4 py-3 text-left">To</th><th className="px-4 py-3 text-left">Status</th></tr>
@@ -339,19 +346,24 @@ function ReminderLogs() {
 }
 
 function EmailLogs() {
+  const f = useLogFilter("30d");
   const [logs, setLogs] = useState<any[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const load = async () => {
-    const { data } = await supabase.from("email_logs").select("*").order("sent_at", { ascending: false }).limit(200);
+    let q = supabase.from("email_logs").select("*").order("sent_at", { ascending: false }).limit(500);
+    if (f.range.from) q = q.gte("sent_at", f.range.from);
+    if (f.range.to)   q = q.lte("sent_at", f.range.to);
+    const { data } = await q;
     setLogs(data || []);
   };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [f.preset, f.from, f.to]);
   return (
     <Card className="mt-4 overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
-        <div className="text-sm font-medium">Email Send Log (test + reminders)</div>
-        <Button variant="outline" size="sm" onClick={load}>Refresh</Button>
-      </div>
+      <LogFilterBar {...f} onExport={() => downloadCsv("email-logs.csv", logs, [
+        { key: "sent_at", label: "When" }, { key: "email_type", label: "Type" },
+        { key: "to_addresses", label: "To" }, { key: "subject", label: "Subject" },
+        { key: "status", label: "Status" }, { key: "error_message", label: "Error" },
+      ])} />
       <table className="w-full text-sm">
         <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
           <tr>
@@ -403,23 +415,30 @@ function EmailLogs() {
 }
 
 function ActivityLogs() {
+  const f = useLogFilter("30d");
   const [logs, setLogs] = useState<any[]>([]);
   const [users, setUsers] = useState<Record<string, string>>({});
-  useEffect(() => {
-    void (async () => {
-      const [{ data: l }, { data: u }] = await Promise.all([
-        supabase.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(200),
-        supabase.from("user_profiles").select("id, full_name, email"),
-      ]);
-      setLogs(l || []);
-      const m: Record<string, string> = {};
-      (u || []).forEach((x: any) => { m[x.id] = x.full_name || x.email; });
-      setUsers(m);
-    })();
-  }, []);
+  const load = async () => {
+    let q = supabase.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(500);
+    if (f.range.from) q = q.gte("created_at", f.range.from);
+    if (f.range.to)   q = q.lte("created_at", f.range.to);
+    const [{ data: l }, { data: u }] = await Promise.all([
+      q,
+      supabase.from("user_profiles").select("id, full_name, email"),
+    ]);
+    setLogs(l || []);
+    const m: Record<string, string> = {};
+    (u || []).forEach((x: any) => { m[x.id] = x.full_name || x.email; });
+    setUsers(m);
+  };
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [f.preset, f.from, f.to]);
   return (
     <Card className="mt-4 overflow-hidden">
-      <div className="border-b border-border px-5 py-3 text-sm font-medium">Activity Log</div>
+      <LogFilterBar {...f} onExport={() => downloadCsv("activity-logs.csv", logs, [
+        { key: "created_at", label: "When" }, { key: "user_id", label: "User" },
+        { key: "action_type", label: "Action" }, { key: "entity_type", label: "Entity" },
+        { key: "description", label: "Description" },
+      ])} />
       <table className="w-full text-sm">
         <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
           <tr><th className="px-4 py-3 text-left">When</th><th className="px-4 py-3 text-left">User</th><th className="px-4 py-3 text-left">Action</th><th className="px-4 py-3 text-left">Entity</th><th className="px-4 py-3 text-left">Description</th></tr>
