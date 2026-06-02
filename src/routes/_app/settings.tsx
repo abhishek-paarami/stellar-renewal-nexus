@@ -128,27 +128,44 @@ function ReminderPanel() {
     days_before: "30,7,1",
     send_after_expiry: true,
     cc_internal: "",
-    amc_low_hours_threshold: "20",
+    amc_percents: "55,85,100",
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const { data } = await supabase.from("app_settings").select("value").eq("key", "reminders").maybeSingle();
-      if (data?.value) setForm({ ...form, ...(data.value as any) });
+      if (data?.value) {
+        const v: any = data.value;
+        setForm({
+          days_before: v.days_before ?? "30,7,1",
+          send_after_expiry: v.send_after_expiry !== false,
+          cc_internal: v.cc_internal ?? "",
+          amc_percents: Array.isArray(v.amc_percents)
+            ? v.amc_percents.join(",")
+            : (v.amc_percents ?? "55,85,100"),
+        });
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const save = async () => {
+    // Normalise CSV → arrays of integers so edge functions can read them directly.
+    const days = form.days_before.split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n > 0).sort((a,b)=>b-a);
+    const percents = form.amc_percents.split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n > 0 && n <= 100).sort((a,b)=>b-a);
+    if (!days.length) return toast.error("Days Before Expiry must have at least one number");
+    if (!percents.length) return toast.error("AMC % Thresholds must have at least one number 1–100");
     setSaving(true);
     const { error } = await supabase.from("app_settings").upsert(
-      { key: "reminders", value: form },
+      { key: "reminders", value: { ...form, renewal_days: days, amc_percents: percents } },
       { onConflict: "key" }
     );
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Reminder settings saved");
+    // Auto-create missing email templates for any new thresholds
+    await autoSeedTemplates(days, percents);
+    toast.success("Reminder settings saved — templates synced");
   };
 
   const triggerNow = async () => {
@@ -163,7 +180,11 @@ function ReminderPanel() {
       <p className="mb-4 text-xs text-muted-foreground">A daily cron sends reminders at 09:00 IST. You can also trigger a run manually.</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2"><Label>Days Before Expiry (CSV)</Label><Input value={form.days_before} onChange={(e) => setForm({ ...form, days_before: e.target.value })} placeholder="30,7,1" /></div>
-        <div className="space-y-2"><Label>AMC Low-Hours Threshold (%)</Label><Input type="number" value={form.amc_low_hours_threshold} onChange={(e) => setForm({ ...form, amc_low_hours_threshold: e.target.value })} /></div>
+        <div className="space-y-2">
+          <Label>AMC % Thresholds (CSV)</Label>
+          <Input value={form.amc_percents} onChange={(e) => setForm({ ...form, amc_percents: e.target.value })} placeholder="55,85,100" />
+          <p className="text-[11px] text-muted-foreground">Alert fires when consumed hours reach each %. Used everywhere: cron, instant alerts, card badges.</p>
+        </div>
         <div className="col-span-2 space-y-2"><Label>Always CC (comma separated)</Label><Textarea value={form.cc_internal} onChange={(e) => setForm({ ...form, cc_internal: e.target.value })} rows={2} placeholder="ops@paaramidigital.com" /></div>
         <div className="col-span-2 flex items-center gap-3">
           <Switch checked={form.send_after_expiry} onCheckedChange={(v) => setForm({ ...form, send_after_expiry: v })} />
