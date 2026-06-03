@@ -219,6 +219,19 @@ function AmcPage() {
         existingClientIds={new Set(rows.map((r) => r.client_id).filter((x): x is string => !!x))}
         onSaved={() => { setOpen(false); void load(); }}
       />
+      <WarningConfirmDialog
+        open={!!triggerWarn}
+        onOpenChange={(o) => !o && setTriggerWarn(null)}
+        title="Disable email triggers?"
+        description={triggerWarn ? (
+          <>
+            No automatic emails (client <b>or</b> internal CC) will be sent for{" "}
+            <b>{clientName(triggerWarn.client_id)}</b> until you re-enable. All AMC threshold alerts will be silenced.
+          </>
+        ) : ""}
+        confirmLabel="Disable triggers"
+        onConfirm={async () => { if (triggerWarn) { await applyToggleTriggers(triggerWarn, true); setTriggerWarn(null); } }}
+      />
     </div>
   );
 }

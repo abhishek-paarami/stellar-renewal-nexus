@@ -247,6 +247,29 @@ function RenewalsPage() {
         onSaved={() => { setOpen(false); void load(); }}
       />
       {vaultId && <CredentialsDialog renewalId={vaultId} onClose={() => setVaultId(null)} />}
+      <WarningConfirmDialog
+        open={!!triggerWarn}
+        onOpenChange={(o) => !o && setTriggerWarn(null)}
+        title="Disable email triggers?"
+        description={triggerWarn ? (
+          <>
+            No automatic renewal reminders (client <b>or</b> internal CC) will be sent for{" "}
+            <b>{triggerWarn.domain}</b> until you re-enable.
+          </>
+        ) : ""}
+        confirmLabel="Disable triggers"
+        onConfirm={async () => { if (triggerWarn) { await applyToggleTriggers(triggerWarn, true); setTriggerWarn(null); } }}
+      />
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this renewal?"
+        description={delTarget ? (
+          <>This will permanently delete the renewal entry for <b>{delTarget.domain}</b>. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete renewal"
+        onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
+      />
     </div>
   );
 }
