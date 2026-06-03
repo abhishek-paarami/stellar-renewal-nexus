@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate, expiryStatus, statusColors } from "@/lib/format";
 import { logActivity } from "@/lib/activity-log";
+import { WarningConfirmDialog } from "@/components/warning-confirm-dialog";
 
 export const Route = createFileRoute("/_app/renewals")({ component: RenewalsPage });
 
@@ -60,6 +61,8 @@ function RenewalsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RenewalRow | null>(null);
   const [vaultId, setVaultId] = useState<string | null>(null);
+  const [triggerWarn, setTriggerWarn] = useState<RenewalRow | null>(null);
+  const [delTarget, setDelTarget] = useState<RenewalRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -89,23 +92,29 @@ function RenewalsPage() {
   }, [rows, search, filter, clients]);
 
   const del = async (id: string) => {
-    if (!confirm("Delete this renewal?")) return;
     const row = rows.find((r) => r.id === id);
+    if (row) setDelTarget(row);
+  };
+
+  const confirmDelete = async (row: RenewalRow) => {
+    const id = row.id;
     const { error } = await supabase.from("renewals").delete().eq("id", id);
     if (error) return toast.error(error.message);
     void logActivity({ action: "delete", entity: "renewal", entityId: id,
-      description: `Deleted renewal for domain "${row?.domain || ""}"` });
+      description: `Deleted renewal for domain "${row.domain}"` });
     toast.success("Deleted"); void load();
   };
 
   const toggleTriggers = async (r: RenewalRow) => {
     const next = !r.triggers_disabled;
     if (next) {
-      const ok = confirm(
-        `⚠ Disable email triggers for ${r.domain}?\n\nNo automatic renewal reminders (client OR internal CC) will be sent for this entry until you re-enable.\n\nContinue?`,
-      );
-      if (!ok) return;
+      setTriggerWarn(r);
+      return;
     }
+    await applyToggleTriggers(r, next);
+  };
+
+  const applyToggleTriggers = async (r: RenewalRow, next: boolean) => {
     const { error } = await supabase.from("renewals" as any).update({ triggers_disabled: next } as any).eq("id", r.id);
     if (error) return toast.error(error.message);
     void logActivity({
@@ -238,6 +247,29 @@ function RenewalsPage() {
         onSaved={() => { setOpen(false); void load(); }}
       />
       {vaultId && <CredentialsDialog renewalId={vaultId} onClose={() => setVaultId(null)} />}
+      <WarningConfirmDialog
+        open={!!triggerWarn}
+        onOpenChange={(o) => !o && setTriggerWarn(null)}
+        title="Disable email triggers?"
+        description={triggerWarn ? (
+          <>
+            No automatic renewal reminders (client <b>or</b> internal CC) will be sent for{" "}
+            <b>{triggerWarn.domain}</b> until you re-enable.
+          </>
+        ) : ""}
+        confirmLabel="Disable triggers"
+        onConfirm={async () => { if (triggerWarn) { await applyToggleTriggers(triggerWarn, true); setTriggerWarn(null); } }}
+      />
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this renewal?"
+        description={delTarget ? (
+          <>This will permanently delete the renewal entry for <b>{delTarget.domain}</b>. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete renewal"
+        onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
+      />
     </div>
   );
 }

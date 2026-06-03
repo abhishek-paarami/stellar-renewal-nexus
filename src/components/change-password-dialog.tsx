@@ -16,10 +16,18 @@ export function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; on
     if (pw.length < 8) return toast.error("Password must be at least 8 characters");
     if (pw !== pw2) return toast.error("Passwords do not match");
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password: pw });
+    const { data: u } = await supabase.auth.getUser();
+    if (!u?.user?.id) { setSaving(false); return toast.error("Not signed in"); }
+    // Use admin-create-user reset_password flow so the new password is also emailed to the user.
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: { action: "reset_password", user_id: u.user.id, password: pw, self: true },
+    });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Password updated");
+    if ((data as any)?.error) return toast.error((data as any).error);
+    const em = (data as any)?.email;
+    if (em?.sent) toast.success("Password updated — confirmation emailed to you");
+    else toast.success(`Password updated${em?.error ? ` (email failed: ${em.error})` : ""}`);
     setPw(""); setPw2("");
     onOpenChange(false);
   };

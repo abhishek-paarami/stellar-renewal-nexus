@@ -30,6 +30,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate, expiryStatus, statusColors } from "@/lib/format";
 import { logActivity } from "@/lib/activity-log";
+import { WarningConfirmDialog } from "@/components/warning-confirm-dialog";
 
 export const Route = createFileRoute("/_app/amc")({
   component: AmcPage,
@@ -58,6 +59,7 @@ function AmcPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AmcRow | null>(null);
+  const [triggerWarn, setTriggerWarn] = useState<AmcRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -94,11 +96,13 @@ function AmcPage() {
   const toggleTriggers = async (r: AmcRow) => {
     const next = !r.triggers_disabled;
     if (next) {
-      const ok = confirm(
-        `⚠ Disable email triggers for this AMC?\n\nNo automatic emails (client OR internal CC) will be sent for "${clientName(r.client_id)}" until you re-enable. Threshold alerts at 55/85/100% will be silenced.\n\nContinue?`,
-      );
-      if (!ok) return;
+      setTriggerWarn(r);
+      return;
     }
+    await applyToggleTriggers(r, next);
+  };
+
+  const applyToggleTriggers = async (r: AmcRow, next: boolean) => {
     const { error } = await supabase.from("amc_clients" as any).update({ triggers_disabled: next } as any).eq("id", r.id);
     if (error) return toast.error(error.message);
     void logActivity({
@@ -214,6 +218,19 @@ function AmcPage() {
         clients={clients}
         existingClientIds={new Set(rows.map((r) => r.client_id).filter((x): x is string => !!x))}
         onSaved={() => { setOpen(false); void load(); }}
+      />
+      <WarningConfirmDialog
+        open={!!triggerWarn}
+        onOpenChange={(o) => !o && setTriggerWarn(null)}
+        title="Disable email triggers?"
+        description={triggerWarn ? (
+          <>
+            No automatic emails (client <b>or</b> internal CC) will be sent for{" "}
+            <b>{clientName(triggerWarn.client_id)}</b> until you re-enable. All AMC threshold alerts will be silenced.
+          </>
+        ) : ""}
+        confirmLabel="Disable triggers"
+        onConfirm={async () => { if (triggerWarn) { await applyToggleTriggers(triggerWarn, true); setTriggerWarn(null); } }}
       />
     </div>
   );

@@ -103,18 +103,36 @@ function defaultBody(kind: "renewal" | "amc", value: number) {
 }
 
 async function autoSeedTemplates(days: number[], percents: number[]) {
+  // Fully dynamic sync:
+  //  - INSERT a template for every desired threshold that doesn't have one
+  //  - DELETE any threshold-template (renewal_NN / amc_hours_NN) that is no longer in the desired set
+  // Non-threshold templates (welcome, reset, etc.) are left untouched.
   const { data: existing } = await supabase.from("email_templates").select("template_key");
   const have = new Set((existing || []).map((t: any) => t.template_key));
-  const rows: any[] = [];
+
+  const desiredRenewal = new Set(days.map((d) => `renewal_${d}`));
+  const desiredAmc = new Set(percents.map((p) => `amc_hours_${p}`));
+  const desiredAll = new Set([...desiredRenewal, ...desiredAmc]);
+
+  // INSERT missing
+  const toInsert: any[] = [];
   for (const d of days) {
     const t = defaultBody("renewal", d);
-    if (!have.has(t.key)) rows.push({ template_key: t.key, subject: t.subject, html_body: t.html });
+    if (!have.has(t.key)) toInsert.push({ template_key: t.key, subject: t.subject, html_body: t.html });
   }
   for (const p of percents) {
     const t = defaultBody("amc", p);
-    if (!have.has(t.key)) rows.push({ template_key: t.key, subject: t.subject, html_body: t.html });
+    if (!have.has(t.key)) toInsert.push({ template_key: t.key, subject: t.subject, html_body: t.html });
   }
-  if (rows.length) await supabase.from("email_templates").insert(rows);
+  if (toInsert.length) await supabase.from("email_templates").insert(toInsert);
+
+  // DELETE orphan threshold templates (matching the patterns but not desired)
+  const orphanKeys = (existing || [])
+    .map((t: any) => t.template_key)
+    .filter((k: string) => (/^renewal_\d+$/.test(k) || /^amc_hours_\d+$/.test(k)) && !desiredAll.has(k));
+  if (orphanKeys.length) {
+    await supabase.from("email_templates").delete().in("template_key", orphanKeys);
+  }
 }
 
 function SettingsPage() {
