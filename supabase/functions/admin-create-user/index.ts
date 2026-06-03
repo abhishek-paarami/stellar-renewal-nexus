@@ -64,9 +64,14 @@ Deno.serve(async (req) => {
     const { data: ures } = await userClient.auth.getUser();
     if (!ures?.user) return json({ error: "Not authenticated" }, 401);
     const { data: prof } = await admin.from("user_profiles").select("role").eq("id", ures.user.id).maybeSingle();
-    if (!prof || prof.role !== "super_admin") return json({ error: "Super Admin only" }, 403);
-
     const body = await req.json();
+    // Allow any signed-in user to reset their OWN password (self-service);
+    // every other action remains Super Admin only.
+    const isSelfReset =
+      body?.action === "reset_password" && (body?.self === true || body?.user_id === ures.user.id);
+    if (!isSelfReset && (!prof || prof.role !== "super_admin")) {
+      return json({ error: "Super Admin only" }, 403);
+    }
     const action = body.action || "create";
     // Always use the production portal URL so links in emails open the deployed portal,
     // not the lovable preview or dev origin. Super Admin can override via app_settings.portal_url.
@@ -124,7 +129,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset_password") {
-      const { user_id, password } = body;
+      // For self-reset, force the user_id to the caller's id (no spoofing).
+      const user_id = isSelfReset ? ures.user.id : body.user_id;
+      const { password } = body;
       if (!user_id || !password) return json({ success: false, error: "Missing fields" }, 200);
       const { data: target } = await admin.from("user_profiles").select("email, full_name").eq("id", user_id).maybeSingle();
       if (!target) return json({ success: false, error: "User not found" }, 200);

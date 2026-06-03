@@ -18,34 +18,47 @@ export const Route = createFileRoute("/_app/people")({
 
 type Row = { id: string; name: string; email: string | null; is_active: boolean };
 
-function ListEditor({ table, title }: { table: "developers" | "bd_persons"; title: string }) {
+type Tab =
+  | { kind: "builtin"; key: "developers" | "bd_persons"; title: string }
+  | { kind: "custom"; roleId: string; title: string };
+
+function ListEditor({ tab }: { tab: Tab }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const title = tab.title;
 
   const load = async () => {
-    const { data, error } = await supabase.from(table).select("*").order("name");
+    const q = tab.kind === "builtin"
+      ? supabase.from(tab.key).select("*").order("name")
+      : supabase.from("custom_role_members" as any).select("*").eq("role_id", tab.roleId).order("name");
+    const { data, error } = await q;
     if (error) return toast.error(error.message);
     setRows((data || []) as Row[]);
   };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [tab.kind === "custom" ? tab.roleId : tab.key]);
 
   const add = async () => {
     if (!name.trim()) return;
-    const { error } = await supabase.from(table).insert({ name: name.trim(), email: email.trim() || null });
+    const payload: any = { name: name.trim(), email: email.trim() || null };
+    if (tab.kind === "custom") payload.role_id = tab.roleId;
+    const tbl: any = tab.kind === "builtin" ? tab.key : "custom_role_members";
+    const { error } = await supabase.from(tbl).insert(payload);
     if (error) return toast.error(error.message);
     void logActivity({ action: "create", entity: "user", description: `Added ${title}: ${name}` });
     setName(""); setEmail(""); void load();
   };
   const toggle = async (r: Row) => {
-    const { error } = await supabase.from(table).update({ is_active: !r.is_active }).eq("id", r.id);
+    const tbl: any = tab.kind === "builtin" ? tab.key : "custom_role_members";
+    const { error } = await supabase.from(tbl).update({ is_active: !r.is_active }).eq("id", r.id);
     if (error) return toast.error(error.message);
     void logActivity({ action: "update", entity: "user", description: `${r.is_active ? "Disabled" : "Enabled"} ${r.name}` });
     void load();
   };
   const remove = async (r: Row) => {
     if (!confirm(`Delete ${r.name}?`)) return;
-    const { error } = await supabase.from(table).delete().eq("id", r.id);
+    const tbl: any = tab.kind === "builtin" ? tab.key : "custom_role_members";
+    const { error } = await supabase.from(tbl).delete().eq("id", r.id);
     if (error) return toast.error(error.message);
     void logActivity({ action: "delete", entity: "user", description: `Deleted ${r.name}` });
     void load();
@@ -88,22 +101,46 @@ function ListEditor({ table, title }: { table: "developers" | "bd_persons"; titl
 
 function PeoplePage() {
   const { isSuperAdmin } = useAuth();
+  const [customRoles, setCustomRoles] = useState<{ id: string; label: string }[]>([]);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.from("custom_roles" as any).select("id,label").order("label");
+      setCustomRoles((data as any) || []);
+    })();
+  }, []);
+
   if (!isSuperAdmin) {
     return <div className="rounded-md border bg-card p-8 text-center text-muted-foreground">Super Admin access required.</div>;
   }
+
+  const tabs: Tab[] = [
+    { kind: "builtin", key: "developers", title: "Developers" },
+    { kind: "builtin", key: "bd_persons", title: "BD Persons" },
+    ...customRoles.map((r) => ({ kind: "custom" as const, roleId: r.id, title: r.label })),
+  ];
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">People Directory</h2>
-        <p className="text-sm text-muted-foreground">Manage Developers and BD Persons available as dropdowns across the portal.</p>
+        <p className="text-sm text-muted-foreground">
+          Manage members for every role (Developers, BD Persons, and any custom roles).
+          Add or remove custom roles from User Management.
+        </p>
       </div>
-      <Tabs defaultValue="dev">
-        <TabsList>
-          <TabsTrigger value="dev">Developers</TabsTrigger>
-          <TabsTrigger value="bd">BD Persons</TabsTrigger>
+      <Tabs defaultValue="developers">
+        <TabsList className="flex-wrap">
+          {tabs.map((t) => (
+            <TabsTrigger key={t.kind === "builtin" ? t.key : t.roleId} value={t.kind === "builtin" ? t.key : t.roleId}>
+              {t.title}
+            </TabsTrigger>
+          ))}
         </TabsList>
-        <TabsContent value="dev" className="mt-4"><ListEditor table="developers" title="Developers" /></TabsContent>
-        <TabsContent value="bd" className="mt-4"><ListEditor table="bd_persons" title="BD Persons" /></TabsContent>
+        {tabs.map((t) => (
+          <TabsContent key={t.kind === "builtin" ? t.key : t.roleId} value={t.kind === "builtin" ? t.key : t.roleId} className="mt-4">
+            <ListEditor tab={t} />
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
