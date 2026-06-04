@@ -131,6 +131,12 @@ Deno.serve(async (req) => {
 
       // Insert / upsert in forward dependency order.
       for (const t of TABLES) {
+        // Never overwrite app_settings (holds crypto_key) or user_profiles
+        // (tied to auth.users). Backups still include them for reference.
+        if (t === "app_settings" || t === "user_profiles") {
+          report[t] = { ...(report[t] || { inserted: 0 }), inserted: 0 };
+          continue;
+        }
         const rows = tables[t];
         if (!Array.isArray(rows) || rows.length === 0) {
           report[t] = { ...(report[t] || { inserted: 0 }), inserted: 0 };
