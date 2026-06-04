@@ -103,6 +103,17 @@ function ClientsPage() {
           </Card>
         )}
       <ClientDialog open={open} onOpenChange={setOpen} client={editing} onSaved={() => { setOpen(false); void load(); }} />
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this client?"
+        description={delTarget ? (
+          <>This will permanently delete <b>{delTarget.company_name}</b>. Linked renewals/AMC entries may also be affected. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete client"
+        requireText="DELETE"
+        onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
+      />
     </div>
   );
 }
