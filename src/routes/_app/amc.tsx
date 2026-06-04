@@ -60,6 +60,7 @@ function AmcPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AmcRow | null>(null);
   const [triggerWarn, setTriggerWarn] = useState<AmcRow | null>(null);
+  const [delTarget, setDelTarget] = useState<AmcRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -80,14 +81,17 @@ function AmcPage() {
     `${clientName(r.client_id)} ${r.website} ${r.bd_person}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  const del = async (id: string) => {
-    if (!confirm("Delete this AMC?")) return;
+  const del = (id: string) => {
     const row = rows.find((r) => r.id === id);
-    const { error } = await supabase.from("amc_clients").delete().eq("id", id);
+    if (row) setDelTarget(row);
+  };
+
+  const confirmDelete = async (row: AmcRow) => {
+    const { error } = await supabase.from("amc_clients").delete().eq("id", row.id);
     if (error) return toast.error(error.message);
     void logActivity({
-      action: "delete", entity: "amc_client", entityId: id,
-      description: `Deleted AMC for ${clientName(row?.client_id || null)}`,
+      action: "delete", entity: "amc_client", entityId: row.id,
+      description: `Deleted AMC for ${clientName(row.client_id)}`,
     });
     toast.success("AMC deleted");
     void load();
@@ -231,6 +235,17 @@ function AmcPage() {
         ) : ""}
         confirmLabel="Disable triggers"
         onConfirm={async () => { if (triggerWarn) { await applyToggleTriggers(triggerWarn, true); setTriggerWarn(null); } }}
+      />
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this AMC?"
+        description={delTarget ? (
+          <>This will permanently delete the AMC for <b>{clientName(delTarget.client_id)}</b> and all linked time entries. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete AMC"
+        requireText="DELETE"
+        onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
       />
     </div>
   );
