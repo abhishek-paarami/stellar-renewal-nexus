@@ -43,7 +43,7 @@ function BackupPage() {
         (s: number, arr: any) => s + (Array.isArray(arr) ? arr.length : 0), 0,
       );
       toast.success(`Backup downloaded — ${totalRows} rows across ${Object.keys((data as any).tables || {}).length} tables`);
-      void logActivity({ action: "export", entity: "system", description: `Downloaded full DB backup (${totalRows} rows)` });
+      void logActivity({ action: "export", entity: "import_export", description: `Downloaded full DB backup (${totalRows} rows)` });
     } catch (e: any) {
       toast.error(e.message || "Export failed");
     } finally { setExporting(false); }
@@ -83,7 +83,7 @@ function BackupPage() {
         .filter(([, v]: any) => v?.error).map(([k]) => k);
       if (failed.length) toast.warning(`Restore finished with errors: ${failed.join(", ")}`);
       else toast.success(`Database restored (mode: ${pending.mode})`);
-      void logActivity({ action: "import", entity: "system", description: `Restored full DB backup (${pending.mode})` });
+      void logActivity({ action: "import", entity: "import_export", description: `Restored full DB backup (${pending.mode})` });
     } catch (e: any) {
       toast.error(e.message || "Restore failed");
     } finally {
