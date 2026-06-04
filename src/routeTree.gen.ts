@@ -22,6 +22,7 @@ import { Route as AppEmailTemplatesRouteImport } from './routes/_app/email-templ
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCredentialsRouteImport } from './routes/_app/credentials'
 import { Route as AppClientsRouteImport } from './routes/_app/clients'
+import { Route as AppBackupRouteImport } from './routes/_app/backup'
 import { Route as AppAmcRouteImport } from './routes/_app/amc'
 
 const LoginRoute = LoginRouteImport.update({
@@ -88,6 +89,11 @@ const AppClientsRoute = AppClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBackupRoute = AppBackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAmcRoute = AppAmcRouteImport.update({
   id: '/amc',
   path: '/amc',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/amc': typeof AppAmcRoute
+  '/backup': typeof AppBackupRoute
   '/clients': typeof AppClientsRoute
   '/credentials': typeof AppCredentialsRoute
   '/dashboard': typeof AppDashboardRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/amc': typeof AppAmcRoute
+  '/backup': typeof AppBackupRoute
   '/clients': typeof AppClientsRoute
   '/credentials': typeof AppCredentialsRoute
   '/dashboard': typeof AppDashboardRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/amc': typeof AppAmcRoute
+  '/_app/backup': typeof AppBackupRoute
   '/_app/clients': typeof AppClientsRoute
   '/_app/credentials': typeof AppCredentialsRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/amc'
+    | '/backup'
     | '/clients'
     | '/credentials'
     | '/dashboard'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/amc'
+    | '/backup'
     | '/clients'
     | '/credentials'
     | '/dashboard'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/amc'
+    | '/_app/backup'
     | '/_app/clients'
     | '/_app/credentials'
     | '/_app/dashboard'
@@ -289,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/backup': {
+      id: '/_app/backup'
+      path: '/backup'
+      fullPath: '/backup'
+      preLoaderRoute: typeof AppBackupRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/amc': {
       id: '/_app/amc'
       path: '/amc'
@@ -301,6 +320,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAmcRoute: typeof AppAmcRoute
+  AppBackupRoute: typeof AppBackupRoute
   AppClientsRoute: typeof AppClientsRoute
   AppCredentialsRoute: typeof AppCredentialsRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -315,6 +335,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAmcRoute: AppAmcRoute,
+  AppBackupRoute: AppBackupRoute,
   AppClientsRoute: AppClientsRoute,
   AppCredentialsRoute: AppCredentialsRoute,
   AppDashboardRoute: AppDashboardRoute,

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Trash2, Power } from "lucide-react";
 import { logActivity } from "@/lib/activity-log";
+import { WarningConfirmDialog } from "@/components/warning-confirm-dialog";
 
 export const Route = createFileRoute("/_app/people")({
   component: PeoplePage,
@@ -26,6 +27,7 @@ function ListEditor({ tab }: { tab: Tab }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [delTarget, setDelTarget] = useState<Row | null>(null);
   const title = tab.title;
 
   const load = async () => {
@@ -55,8 +57,8 @@ function ListEditor({ tab }: { tab: Tab }) {
     void logActivity({ action: "update", entity: "user", description: `${r.is_active ? "Disabled" : "Enabled"} ${r.name}` });
     void load();
   };
-  const remove = async (r: Row) => {
-    if (!confirm(`Delete ${r.name}?`)) return;
+  const remove = (r: Row) => setDelTarget(r);
+  const confirmDelete = async (r: Row) => {
     const tbl: any = tab.kind === "builtin" ? tab.key : "custom_role_members";
     const { error } = await supabase.from(tbl).delete().eq("id", r.id);
     if (error) return toast.error(error.message);
@@ -65,6 +67,7 @@ function ListEditor({ tab }: { tab: Tab }) {
   };
 
   return (
+    <>
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent className="space-y-5">
@@ -96,6 +99,19 @@ function ListEditor({ tab }: { tab: Tab }) {
         </div>
       </CardContent>
     </Card>
+    {/* Type-DELETE confirmation */}
+    <WarningConfirmDialog
+      open={!!delTarget}
+      onOpenChange={(o) => !o && setDelTarget(null)}
+      title={`Delete ${title.replace(/s$/, "")}?`}
+      description={delTarget ? (
+        <>This will remove <b>{delTarget.name}</b> from {title}. This action cannot be undone.</>
+      ) : ""}
+      confirmLabel="Delete"
+      requireText="DELETE"
+      onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
+    />
+    </>
   );
 }
 

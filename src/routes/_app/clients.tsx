@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
 import { logActivity } from "@/lib/activity-log";
+import { WarningConfirmDialog } from "@/components/warning-confirm-dialog";
 
 export const Route = createFileRoute("/_app/clients")({ component: ClientsPage });
 
@@ -33,6 +34,7 @@ function ClientsPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientRow | null>(null);
+  const [delTarget, setDelTarget] = useState<ClientRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -45,13 +47,15 @@ function ClientsPage() {
 
   const filtered = rows.filter((r) => `${r.company_name} ${r.primary_email} ${r.primary_contact}`.toLowerCase().includes(search.toLowerCase()));
 
-  const del = async (id: string) => {
-    if (!confirm("Delete this client?")) return;
+  const del = (id: string) => {
     const row = rows.find((r) => r.id === id);
-    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (row) setDelTarget(row);
+  };
+  const confirmDelete = async (row: ClientRow) => {
+    const { error } = await supabase.from("clients").delete().eq("id", row.id);
     if (error) return toast.error(error.message);
-    void logActivity({ action: "delete", entity: "client", entityId: id,
-      description: `Deleted client "${row?.company_name || ""}"` });
+    void logActivity({ action: "delete", entity: "client", entityId: row.id,
+      description: `Deleted client "${row.company_name}"` });
     toast.success("Deleted"); void load();
   };
 
@@ -99,6 +103,17 @@ function ClientsPage() {
           </Card>
         )}
       <ClientDialog open={open} onOpenChange={setOpen} client={editing} onSaved={() => { setOpen(false); void load(); }} />
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this client?"
+        description={delTarget ? (
+          <>This will permanently delete <b>{delTarget.company_name}</b>. Linked renewals/AMC entries may also be affected. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete client"
+        requireText="DELETE"
+        onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
+      />
     </div>
   );
 }

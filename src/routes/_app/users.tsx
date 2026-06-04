@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
 import { logActivity } from "@/lib/activity-log";
+import { WarningConfirmDialog } from "@/components/warning-confirm-dialog";
 
 export const Route = createFileRoute("/_app/users")({ component: UsersPage });
 
@@ -35,6 +36,8 @@ function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<ProfileRow | null>(null);
+  const [delTarget, setDelTarget] = useState<ProfileRow | null>(null);
+  const [delRoleTarget, setDelRoleTarget] = useState<CustomRole | null>(null);
   const [newRole, setNewRole] = useState("");
 
   const load = async () => {
@@ -75,9 +78,24 @@ function UsersPage() {
     setNewRole(""); toast.success(`Role "${label}" added`); void load();
   };
 
-  const deleteCustomRole = async (id: string, label: string) => {
-    if (!confirm(`Delete custom role "${label}"? Users assigned to it will fall back to Manager.`)) return;
-    const { error } = await supabase.from("custom_roles" as any).delete().eq("id", id);
+  const requestDeleteCustomRole = async (cr: CustomRole) => {
+    // Block deletion if any portal-access members exist for this role,
+    // or any user is assigned to it.
+    const [{ count: memberCount }, { count: userCount }] = await Promise.all([
+      supabase.from("custom_role_members" as any).select("id", { count: "exact", head: true }).eq("role_id", cr.id),
+      supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("custom_role_id", cr.id),
+    ]);
+    if ((memberCount || 0) > 0 || (userCount || 0) > 0) {
+      return toast.error(
+        `Cannot delete "${cr.label}" — ${memberCount || 0} portal-access member(s) and ${userCount || 0} user(s) still use this role. Remove them first.`,
+        { duration: 6000 },
+      );
+    }
+    setDelRoleTarget(cr);
+  };
+
+  const confirmDeleteCustomRole = async (cr: CustomRole) => {
+    const { error } = await supabase.from("custom_roles" as any).delete().eq("id", cr.id);
     if (error) return toast.error(error.message);
     toast.success("Role deleted"); void load();
   };
@@ -91,9 +109,11 @@ function UsersPage() {
     toast.success(is_active ? "User activated" : "User deactivated"); void load();
   };
 
-  const deleteUser = async (row: ProfileRow) => {
+  const requestDeleteUser = (row: ProfileRow) => {
     if (row.id === user?.id) return toast.error("You cannot delete yourself");
-    if (!confirm(`Permanently delete ${row.email}? This cannot be undone.`)) return;
+    setDelTarget(row);
+  };
+  const confirmDeleteUser = async (row: ProfileRow) => {
     const { data, error } = await supabase.functions.invoke("admin-create-user", {
       body: { action: "delete", user_id: row.id },
     });
@@ -122,7 +142,7 @@ function UsersPage() {
           {customRoles.map((cr) => (
             <Badge key={cr.id} variant="outline" className="gap-1 pr-1">
               {cr.label}
-              <button onClick={() => deleteCustomRole(cr.id, cr.label)} className="ml-1 text-destructive hover:bg-destructive/10 rounded px-1">×</button>
+              <button onClick={() => requestDeleteCustomRole(cr)} className="ml-1 text-destructive hover:bg-destructive/10 rounded px-1">×</button>
             </Badge>
           ))}
           <Input value={newRole} onChange={(e) => setNewRole(e.target.value)} placeholder="New role (e.g. Developer)" className="h-8 w-56" />
@@ -180,7 +200,7 @@ function UsersPage() {
                       <Button
                         size="icon" variant="ghost"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => deleteUser(r)}
+                        onClick={() => requestDeleteUser(r)}
                         disabled={r.id === user?.id}
                         title="Delete user"
                       >
@@ -202,6 +222,28 @@ function UsersPage() {
           onClose={() => setResetTarget(null)}
         />
       )}
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this user?"
+        description={delTarget ? (
+          <>This will permanently delete <b>{delTarget.email}</b> and revoke their portal access. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete user"
+        requireText="DELETE"
+        onConfirm={async () => { if (delTarget) { await confirmDeleteUser(delTarget); setDelTarget(null); } }}
+      />
+      <WarningConfirmDialog
+        open={!!delRoleTarget}
+        onOpenChange={(o) => !o && setDelRoleTarget(null)}
+        title="Delete this role?"
+        description={delRoleTarget ? (
+          <>This will permanently delete the custom role <b>{delRoleTarget.label}</b>. This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete role"
+        requireText="DELETE"
+        onConfirm={async () => { if (delRoleTarget) { await confirmDeleteCustomRole(delRoleTarget); setDelRoleTarget(null); } }}
+      />
     </div>
   );
 }

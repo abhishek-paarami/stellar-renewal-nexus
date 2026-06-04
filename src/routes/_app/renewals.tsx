@@ -268,6 +268,7 @@ function RenewalsPage() {
           <>This will permanently delete the renewal entry for <b>{delTarget.domain}</b>. This action cannot be undone.</>
         ) : ""}
         confirmLabel="Delete renewal"
+        requireText="DELETE"
         onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
       />
     </div>
