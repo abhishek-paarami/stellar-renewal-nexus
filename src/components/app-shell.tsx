@@ -17,6 +17,7 @@ import {
   ChevronDown,
   FileSpreadsheet,
   Lock,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,7 @@ const NAV = [
   { to: "/users", label: "User Management", icon: Shield, role: "super_admin" as const },
   { to: "/people", label: "Portal Access", icon: UserCog, role: "super_admin" as const },
   { to: "/import-export", label: "Import / Export", icon: FileSpreadsheet, role: "all" as const },
+  { to: "/backup", label: "DB Backup", icon: Database, role: "super_admin" as const },
   { to: "/settings", label: "Settings", icon: Settings, role: "super_admin" as const },
 ];
 
@@ -198,6 +200,7 @@ function titleFromPath(path: string): string {
     users: "User Management",
     people: "Portal Access",
     "import-export": "Import / Export",
+    backup: "Database Backup",
     settings: "Settings",
   };
   return map[seg] || "Paarami Portal";
