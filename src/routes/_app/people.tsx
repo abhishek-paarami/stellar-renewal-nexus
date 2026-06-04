@@ -67,6 +67,7 @@ function ListEditor({ tab }: { tab: Tab }) {
   };
 
   return (
+    <>
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent className="space-y-5">
