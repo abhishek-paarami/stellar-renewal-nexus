@@ -41,7 +41,7 @@ const NAV = [
   { to: "/credentials", label: "Credentials Vault", icon: KeyRound, role: "super_admin" as const },
   { to: "/email-templates", label: "Email Templates", icon: Mail, role: "super_admin" as const },
   { to: "/users", label: "User Management", icon: Shield, role: "super_admin" as const },
-  { to: "/people", label: "Developers & BD", icon: UserCog, role: "super_admin" as const },
+  { to: "/people", label: "Portal Access", icon: UserCog, role: "super_admin" as const },
   { to: "/import-export", label: "Import / Export", icon: FileSpreadsheet, role: "all" as const },
   { to: "/settings", label: "Settings", icon: Settings, role: "super_admin" as const },
 ];
@@ -196,7 +196,7 @@ function titleFromPath(path: string): string {
     credentials: "Credentials Vault",
     "email-templates": "Email Templates",
     users: "User Management",
-    people: "Developers & BD",
+    people: "Portal Access",
     "import-export": "Import / Export",
     settings: "Settings",
   };
