@@ -12,12 +12,14 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, Search, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
 import { logActivity } from "@/lib/activity-log";
+import { WarningConfirmDialog } from "@/components/warning-confirm-dialog";
 
 export const Route = createFileRoute("/_app/time-entries")({ component: TimeEntriesPage });
 
@@ -39,6 +41,8 @@ function TimeEntriesPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EntryRow | null>(null);
+  const [amcTab, setAmcTab] = useState<string>("all");
+  const [delTarget, setDelTarget] = useState<EntryRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -62,16 +66,27 @@ function TimeEntriesPage() {
   };
 
   const filtered = useMemo(() => rows.filter((r) =>
+    (amcTab === "all" || r.amc_client_id === amcTab) &&
     `${amcLabel(r.amc_client_id)} ${r.developer_name} ${r.work_description}`.toLowerCase().includes(search.toLowerCase())
-  ), [rows, search, amcs, clients]);
+  ), [rows, search, amcs, clients, amcTab]);
+
+  // AMC tabs are only those that have entries (plus All)
+  const usedAmcIds = useMemo(() => {
+    const ids = new Set<string>();
+    rows.forEach((r) => r.amc_client_id && ids.add(r.amc_client_id));
+    return Array.from(ids);
+  }, [rows]);
 
   const totalHours = filtered.reduce((s, r) => s + Number(r.hours) + Number(r.minutes) / 60, 0);
 
-  const del = async (id: string) => {
-    if (!confirm("Delete entry?")) return;
-    const { error } = await supabase.from("time_entries").delete().eq("id", id);
+  const del = (id: string) => {
+    const row = rows.find((r) => r.id === id);
+    if (row) setDelTarget(row);
+  };
+  const confirmDelete = async (row: EntryRow) => {
+    const { error } = await supabase.from("time_entries").delete().eq("id", row.id);
     if (error) return toast.error(error.message);
-    void logActivity({ action: "delete", entity: "time_entry", entityId: id,
+    void logActivity({ action: "delete", entity: "time_entry", entityId: row.id,
       description: `Deleted time entry` });
     toast.success("Deleted"); void load();
   };
@@ -95,6 +110,15 @@ function TimeEntriesPage() {
         </div>
         <Badge variant="outline">{filtered.length} entries · {totalHours.toFixed(2)}h</Badge>
       </div>
+
+      <Tabs value={amcTab} onValueChange={setAmcTab} className="mb-4">
+        <TabsList className="h-auto flex-wrap justify-start gap-1">
+          <TabsTrigger value="all">All</TabsTrigger>
+          {usedAmcIds.map((id) => (
+            <TabsTrigger key={id} value={id}>{amcLabel(id)}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
         : filtered.length === 0 ? <EmptyState icon={Clock} title="No time entries" description="Log work against AMCs to track hour consumption." />
@@ -146,6 +170,17 @@ function TimeEntriesPage() {
         open={open} onOpenChange={setOpen} entry={editing}
         amcs={amcs} clients={clients}
         onSaved={() => { setOpen(false); void load(); }}
+      />
+      <WarningConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(o) => !o && setDelTarget(null)}
+        title="Delete this time entry?"
+        description={delTarget ? (
+          <>This will permanently delete the time entry for <b>{delTarget.developer_name}</b> on {fmtDate(delTarget.entry_date)} ({delTarget.hours}h {delTarget.minutes}m). This action cannot be undone.</>
+        ) : ""}
+        confirmLabel="Delete entry"
+        requireText="DELETE"
+        onConfirm={async () => { if (delTarget) { await confirmDelete(delTarget); setDelTarget(null); } }}
       />
     </div>
   );
