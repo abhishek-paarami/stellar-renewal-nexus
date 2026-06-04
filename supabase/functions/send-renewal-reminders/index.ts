@@ -21,6 +21,37 @@ function render(tpl: string, vars: Record<string, string | number>): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Guard: this endpoint is verify_jwt=false so it can be called by a scheduler.
+  // Require either a valid super_admin JWT OR a shared CRON_SECRET header.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const providedSecret =
+    req.headers.get("x-cron-secret") ||
+    (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  let authorized = false;
+  if (cronSecret && providedSecret && providedSecret === cronSecret) {
+    authorized = true;
+  } else {
+    const authHeader = req.headers.get("Authorization") || "";
+    if (authHeader.startsWith("Bearer ")) {
+      try {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: ures } = await userClient.auth.getUser();
+        if (ures?.user) {
+          const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+          const { data: prof } = await svc.from("user_profiles").select("role,is_active").eq("id", ures.user.id).maybeSingle();
+          if (prof?.role === "super_admin" && prof?.is_active) authorized = true;
+        }
+      } catch (_) { /* fall through */ }
+    }
+  }
+  if (!authorized) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
