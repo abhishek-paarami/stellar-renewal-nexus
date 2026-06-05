@@ -38,6 +38,7 @@ function UsersPage() {
   const [resetTarget, setResetTarget] = useState<ProfileRow | null>(null);
   const [delTarget, setDelTarget] = useState<ProfileRow | null>(null);
   const [delRoleTarget, setDelRoleTarget] = useState<CustomRole | null>(null);
+  const [blockedRole, setBlockedRole] = useState<{ label: string; count: number } | null>(null);
   const [newRole, setNewRole] = useState("");
 
   const load = async () => {
@@ -80,16 +81,22 @@ function UsersPage() {
 
   const requestDeleteCustomRole = async (cr: CustomRole) => {
     // Block deletion if any portal-access members exist for this role,
-    // or any user is assigned to it.
-    const [{ count: memberCount }, { count: userCount }] = await Promise.all([
+    // or any user is assigned to it. Also count built-in BD / Developer
+    // tables when the custom-role label maps to one of those tabs.
+    const label = cr.label.toLowerCase();
+    const builtinTables: string[] = [];
+    if (label.includes("bd") || label.includes("business")) builtinTables.push("bd_persons");
+    if (label.includes("dev")) builtinTables.push("developers");
+    const [memRes, userRes, ...biRes] = await Promise.all([
       supabase.from("custom_role_members" as any).select("id", { count: "exact", head: true }).eq("role_id", cr.id),
       supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("custom_role_id", cr.id),
+      ...builtinTables.map((t) => supabase.from(t as any).select("id", { count: "exact", head: true })),
     ]);
-    if ((memberCount || 0) > 0 || (userCount || 0) > 0) {
-      return toast.error(
-        `Cannot delete "${cr.label}" — ${memberCount || 0} portal-access member(s) and ${userCount || 0} user(s) still use this role. Remove them first.`,
-        { duration: 6000 },
-      );
+    const builtinTotal = biRes.reduce((s: number, r: any) => s + (r?.count || 0), 0);
+    const totalUsers = (memRes.count || 0) + (userRes.count || 0) + builtinTotal;
+    if (totalUsers > 0) {
+      setBlockedRole({ label: cr.label, count: totalUsers });
+      return;
     }
     setDelRoleTarget(cr);
   };
@@ -244,6 +251,21 @@ function UsersPage() {
         requireText="DELETE"
         onConfirm={async () => { if (delRoleTarget) { await confirmDeleteCustomRole(delRoleTarget); setDelRoleTarget(null); } }}
       />
+      <Dialog open={!!blockedRole} onOpenChange={(o) => !o && setBlockedRole(null)}>
+        <DialogContent className="max-w-md border-destructive/40">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Cannot delete role</DialogTitle>
+            <DialogDescription>
+              {blockedRole && (
+                <>This custom role <b>"{blockedRole.label}"</b> already has <b>{blockedRole.count}</b> user{blockedRole.count === 1 ? "" : "s"} assigned to it. Please remove all users from this role first, then you can delete it.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setBlockedRole(null)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
