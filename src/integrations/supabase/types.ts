@@ -75,6 +75,7 @@ export type Database = {
           reminder_55_sent: boolean
           reminder_85_sent: boolean
           reminder_expired_sent: boolean
+          sent_date_thresholds: Json
           sent_thresholds: Json
           start_date: string
           triggers_disabled: boolean
@@ -98,6 +99,7 @@ export type Database = {
           reminder_55_sent?: boolean
           reminder_85_sent?: boolean
           reminder_expired_sent?: boolean
+          sent_date_thresholds?: Json
           sent_thresholds?: Json
           start_date: string
           triggers_disabled?: boolean
@@ -121,6 +123,7 @@ export type Database = {
           reminder_55_sent?: boolean
           reminder_85_sent?: boolean
           reminder_expired_sent?: boolean
+          sent_date_thresholds?: Json
           sent_thresholds?: Json
           start_date?: string
           triggers_disabled?: boolean
@@ -535,6 +538,7 @@ export type Database = {
           domain: string
           domain_expiry: string | null
           email_count: number | null
+          extra_creds_enc: string | null
           ftp_host: string | null
           ftp_password_enc: string | null
           ftp_port: number | null
@@ -550,6 +554,7 @@ export type Database = {
           password_enc: string | null
           phone_1: string | null
           phone_2: string | null
+          platform_type: string | null
           registrar: string | null
           reminder_1_sent: boolean
           reminder_30_sent: boolean
@@ -573,6 +578,7 @@ export type Database = {
           domain: string
           domain_expiry?: string | null
           email_count?: number | null
+          extra_creds_enc?: string | null
           ftp_host?: string | null
           ftp_password_enc?: string | null
           ftp_port?: number | null
@@ -588,6 +594,7 @@ export type Database = {
           password_enc?: string | null
           phone_1?: string | null
           phone_2?: string | null
+          platform_type?: string | null
           registrar?: string | null
           reminder_1_sent?: boolean
           reminder_30_sent?: boolean
@@ -611,6 +618,7 @@ export type Database = {
           domain?: string
           domain_expiry?: string | null
           email_count?: number | null
+          extra_creds_enc?: string | null
           ftp_host?: string | null
           ftp_password_enc?: string | null
           ftp_port?: number | null
@@ -626,6 +634,7 @@ export type Database = {
           password_enc?: string | null
           phone_1?: string | null
           phone_2?: string | null
+          platform_type?: string | null
           registrar?: string | null
           reminder_1_sent?: boolean
           reminder_30_sent?: boolean
@@ -811,6 +820,13 @@ export type Database = {
           username: string
         }[]
       }
+      get_renewal_extra_creds: {
+        Args: { _renewal_id: string }
+        Returns: {
+          data_json: string
+          platform_type: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -830,6 +846,14 @@ export type Database = {
           _password: string
           _renewal_id: string
           _username: string
+        }
+        Returns: undefined
+      }
+      set_renewal_extra_creds: {
+        Args: {
+          _data_json: string
+          _platform_type: string
+          _renewal_id: string
         }
         Returns: undefined
       }

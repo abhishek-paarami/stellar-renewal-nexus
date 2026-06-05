@@ -97,22 +97,25 @@ function defaultBody(kind: "renewal" | "amc", value: number) {
   }
   return {
     key: `amc_hours_${value}`,
-    subject: `AMC usage alert: {{client_name}} reached ${value}%`,
-    html: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#0f172a;margin:0 0 12px">AMC Usage Alert — <span style="color:#b91c1c">${value}% consumed</span></h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">Your AMC for <b>{{client_name}}</b> ({{cycle_month}}) has used <b>{{used_hours}}/{{allocated_hours}} hours</b> (<b>{{usage_pct}}%</b>).</p><p style="color:#b91c1c;font-weight:600">Remaining: {{remaining_hours}} hours.</p><p style="color:#94a3b8;font-size:12px;margin-top:24px">— Paarami Digital Operations</p></div>`,
+    subject: `AMC usage alert: {{client_name}} reached {{usage_pct}}%`,
+    html: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#0f172a;margin:0 0 12px">AMC Usage Alert — <span style="color:#b91c1c">{{usage_pct}}% consumed</span></h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">Your AMC for <b>{{client_name}}</b> ({{cycle_month}}) has used <b>{{used_hours}}/{{allocated_hours}} hours</b> (<b>{{usage_pct}}%</b>).</p><p style="color:#b91c1c;font-weight:600">Remaining: {{remaining_hours}} hours.</p><p style="color:#94a3b8;font-size:12px;margin-top:24px">— Paarami Digital Operations</p></div>`,
   };
 }
 
-async function autoSeedTemplates(days: number[], percents: number[]) {
+async function autoSeedTemplates(days: number[], percents: number[], amcDays: number[] = []) {
   // Fully dynamic sync:
   //  - INSERT a template for every desired threshold that doesn't have one
-  //  - DELETE any threshold-template (renewal_NN / amc_hours_NN) that is no longer in the desired set
+  //  - DELETE any threshold-template that is no longer in the desired set
   // Non-threshold templates (welcome, reset, etc.) are left untouched.
   const { data: existing } = await supabase.from("email_templates").select("template_key");
   const have = new Set((existing || []).map((t: any) => t.template_key));
 
   const desiredRenewal = new Set(days.map((d) => `renewal_${d}`));
+  desiredRenewal.add("renewal_expired");
   const desiredAmc = new Set(percents.map((p) => `amc_hours_${p}`));
-  const desiredAll = new Set([...desiredRenewal, ...desiredAmc]);
+  const desiredAmcDays = new Set(amcDays.map((d) => `amc_expiry_${d}`));
+  desiredAmcDays.add("amc_expired");
+  const desiredAll = new Set([...desiredRenewal, ...desiredAmc, ...desiredAmcDays]);
 
   // INSERT missing
   const toInsert: any[] = [];
@@ -120,16 +123,32 @@ async function autoSeedTemplates(days: number[], percents: number[]) {
     const t = defaultBody("renewal", d);
     if (!have.has(t.key)) toInsert.push({ template_key: t.key, subject: t.subject, html_body: t.html });
   }
+  if (!have.has("renewal_expired")) {
+    toInsert.push({ template_key: "renewal_expired", subject: `URGENT: {{service_name}} expired {{days_left}} day(s) ago`, html_body: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#b91c1c;margin:0 0 12px">EXPIRED — {{days_left}} day(s) ago</h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">Your <b>{{expiry_kind}}</b> for <b>{{domain}}</b> expired on <b>{{expiry_date}}</b>.</p><p style="color:#b91c1c;font-weight:600">Please renew immediately to restore service.</p></div>` });
+  }
   for (const p of percents) {
     const t = defaultBody("amc", p);
     if (!have.has(t.key)) toInsert.push({ template_key: t.key, subject: t.subject, html_body: t.html });
+  }
+  for (const d of amcDays) {
+    const key = `amc_expiry_${d}`;
+    if (!have.has(key)) toInsert.push({
+      template_key: key,
+      subject: `AMC for {{client_name}} expires in ${d} day${d === 1 ? "" : "s"}`,
+      html_body: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#0f172a;margin:0 0 12px">AMC expires in <span style="color:#b91c1c">${d} day${d === 1 ? "" : "s"}</span></h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">AMC contract for <b>{{client_name}}</b> ends on <b>{{end_date}}</b>.</p><p style="color:#b91c1c;font-weight:600">Please initiate renewal to avoid service disruption.</p></div>`,
+    });
+  }
+  if (!have.has("amc_expired")) {
+    toInsert.push({ template_key: "amc_expired", subject: `URGENT: AMC for {{client_name}} expired {{days_overdue}} day(s) ago`, html_body: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;padding:32px;border:1px solid #eee;border-radius:12px"><h2 style="color:#b91c1c;margin:0 0 12px">AMC EXPIRED — {{days_overdue}} day(s) ago</h2><p style="color:#475569">Hi {{contact_person}},</p><p style="color:#475569">AMC contract for <b>{{client_name}}</b> ended on <b>{{end_date}}</b>.</p><p style="color:#b91c1c;font-weight:600">Please renew the AMC to keep support active.</p></div>` });
   }
   if (toInsert.length) await supabase.from("email_templates").insert(toInsert);
 
   // DELETE orphan threshold templates (matching the patterns but not desired)
   const orphanKeys = (existing || [])
     .map((t: any) => t.template_key)
-    .filter((k: string) => (/^renewal_\d+$/.test(k) || /^amc_hours_\d+$/.test(k)) && !desiredAll.has(k));
+    .filter((k: string) =>
+      (/^renewal_\d+$/.test(k) || /^amc_hours_\d+$/.test(k) || /^amc_expiry_\d+$/.test(k)) && !desiredAll.has(k)
+    );
   if (orphanKeys.length) {
     await supabase.from("email_templates").delete().in("template_key", orphanKeys);
   }
@@ -247,6 +266,7 @@ function ReminderPanel() {
     send_after_expiry: true,
     cc_internal: "",
     amc_percents: "55,85,100",
+    amc_days_before: "3,1",
   });
   const [saving, setSaving] = useState(false);
 
@@ -262,6 +282,9 @@ function ReminderPanel() {
           amc_percents: Array.isArray(v.amc_percents)
             ? v.amc_percents.join(",")
             : (v.amc_percents ?? "55,85,100"),
+          amc_days_before: Array.isArray(v.amc_days_before)
+            ? v.amc_days_before.join(",")
+            : (v.amc_days_before ?? "3,1"),
         });
       }
     })();
@@ -272,17 +295,18 @@ function ReminderPanel() {
     // Normalise CSV → arrays of integers so edge functions can read them directly.
     const days = form.days_before.split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n > 0).sort((a,b)=>b-a);
     const percents = form.amc_percents.split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n > 0 && n <= 100).sort((a,b)=>b-a);
+    const amcDays = form.amc_days_before.split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n > 0).sort((a,b)=>b-a);
     if (!days.length) return toast.error("Days Before Expiry must have at least one number");
     if (!percents.length) return toast.error("AMC % Thresholds must have at least one number 1–100");
     setSaving(true);
     const { error } = await supabase.from("app_settings").upsert(
-      { key: "reminders", value: { ...form, renewal_days: days, amc_percents: percents } },
+      { key: "reminders", value: { ...form, renewal_days: days, amc_percents: percents, amc_days_before: amcDays } },
       { onConflict: "key" }
     );
     setSaving(false);
     if (error) return toast.error(error.message);
     // Auto-create missing email templates for any new thresholds
-    await autoSeedTemplates(days, percents);
+    await autoSeedTemplates(days, percents, amcDays);
     toast.success("Reminder settings saved — templates synced");
   };
 
@@ -302,6 +326,11 @@ function ReminderPanel() {
           <Label>AMC % Thresholds (CSV)</Label>
           <Input value={form.amc_percents} onChange={(e) => setForm({ ...form, amc_percents: e.target.value })} placeholder="55,85,100" />
           <p className="text-[11px] text-muted-foreground">Alert fires when consumed hours reach each %. Used everywhere: cron, instant alerts, card badges.</p>
+        </div>
+        <div className="space-y-2">
+          <Label>AMC Days Before Expiry (CSV)</Label>
+          <Input value={form.amc_days_before} onChange={(e) => setForm({ ...form, amc_days_before: e.target.value })} placeholder="3,1" />
+          <p className="text-[11px] text-muted-foreground">Reminder fires N days before the AMC end_date; expired AMCs get a daily "X days ago" alert when the toggle below is on.</p>
         </div>
         <div className="col-span-2 space-y-2"><Label>Always CC (comma separated)</Label><Textarea value={form.cc_internal} onChange={(e) => setForm({ ...form, cc_internal: e.target.value })} rows={2} placeholder="ops@paaramidigital.com" /></div>
         <div className="col-span-2 flex items-center gap-3">

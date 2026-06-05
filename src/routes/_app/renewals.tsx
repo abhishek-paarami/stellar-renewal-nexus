@@ -288,6 +288,9 @@ function RenewalDialog({
     phone_1: "", phone_2: "", client_type: "external" as "internal" | "external",
     notes: "", panel_type: "", admin_url: "", username: "", password: "",
     ftp_host: "", ftp_username: "", ftp_password: "", ftp_port: "",
+    platform_type: "", ftp_protocol: "",
+    registrar_url: "", registrar_email: "", registrar_password: "", registrar_customer_id: "",
+    hosting_url: "", hosting_user_id: "", hosting_password: "", hosting_email: "",
   };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
@@ -333,6 +336,28 @@ function RenewalDialog({
             password: c.password ?? "",
             ftp_username: c.ftp_username ?? "",
             ftp_password: c.ftp_password ?? "",
+          }));
+        })();
+        // Also load the new extra credentials (registrar/hosting/platform/protocol)
+        void (async () => {
+          const { data, error } = await supabase.rpc("get_renewal_extra_creds" as any, { _renewal_id: renewal.id } as any);
+          if (error) return;
+          const row: any = Array.isArray(data) ? data[0] : data;
+          if (!row) return;
+          let extra: any = {};
+          try { extra = row.data_json ? JSON.parse(row.data_json) : {}; } catch {}
+          setForm((f) => ({
+            ...f,
+            platform_type: row.platform_type ?? "",
+            ftp_protocol: extra.ftp_protocol ?? "",
+            registrar_url: extra.registrar_url ?? "",
+            registrar_email: extra.registrar_email ?? "",
+            registrar_password: extra.registrar_password ?? "",
+            registrar_customer_id: extra.registrar_customer_id ?? "",
+            hosting_url: extra.hosting_url ?? "",
+            hosting_user_id: extra.hosting_user_id ?? "",
+            hosting_password: extra.hosting_password ?? "",
+            hosting_email: extra.hosting_email ?? "",
           }));
         })();
       }
@@ -393,6 +418,28 @@ function RenewalDialog({
         _ftp_port: form.ftp_port ? parseInt(form.ftp_port) : (0 as number),
       } as any);
       if (rpcErr) { setSaving(false); return toast.error(`Saved but credentials failed: ${rpcErr.message}`); }
+    }
+
+    // Save the extra credentials blob (registrar + hosting + protocol) — always
+    // even if all fields are blank so users can clear data.
+    if (renewalId) {
+      const extra = {
+        ftp_protocol: form.ftp_protocol || null,
+        registrar_url: form.registrar_url || null,
+        registrar_email: form.registrar_email || null,
+        registrar_password: form.registrar_password || null,
+        registrar_customer_id: form.registrar_customer_id || null,
+        hosting_url: form.hosting_url || null,
+        hosting_user_id: form.hosting_user_id || null,
+        hosting_password: form.hosting_password || null,
+        hosting_email: form.hosting_email || null,
+      };
+      const hasAny = Object.values(extra).some((v) => v);
+      await supabase.rpc("set_renewal_extra_creds" as any, {
+        _renewal_id: renewalId,
+        _platform_type: form.platform_type || null,
+        _data_json: hasAny ? JSON.stringify(extra) : null,
+      } as any);
     }
 
     setSaving(false);
@@ -457,14 +504,31 @@ function RenewalDialog({
           <div className="col-span-2 mt-2 border-t border-border pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Hosting Credentials (encrypted at rest)
           </div>
-          <div className="space-y-2"><Label>Panel Type</Label><Input value={form.panel_type} onChange={(e) => setForm({ ...form, panel_type: e.target.value })} placeholder="cPanel / Plesk / WHM" /></div>
+          <div className="col-span-2 text-[11px] font-semibold text-muted-foreground">Platform</div>
+          <div className="space-y-2"><Label>Platform Type</Label><Input value={form.platform_type} onChange={(e) => setForm({ ...form, platform_type: e.target.value })} placeholder="WordPress / Shopify / Wix" /></div>
           <div className="space-y-2"><Label>Admin URL</Label><Input value={form.admin_url} onChange={(e) => setForm({ ...form, admin_url: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Username</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder={renewal ? "(leave blank to keep)" : ""} /></div>
+          <div className="space-y-2"><Label>User ID</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder={renewal ? "(leave blank to keep)" : ""} /></div>
           <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={renewal ? "(leave blank to keep)" : ""} /></div>
-          <div className="space-y-2"><Label>FTP Host</Label><Input value={form.ftp_host} onChange={(e) => setForm({ ...form, ftp_host: e.target.value })} /></div>
-          <div className="space-y-2"><Label>FTP Port</Label><Input type="number" value={form.ftp_port} onChange={(e) => setForm({ ...form, ftp_port: e.target.value })} /></div>
-          <div className="space-y-2"><Label>FTP Username</Label><Input value={form.ftp_username} onChange={(e) => setForm({ ...form, ftp_username: e.target.value })} /></div>
-          <div className="space-y-2"><Label>FTP Password</Label><Input type="password" value={form.ftp_password} onChange={(e) => setForm({ ...form, ftp_password: e.target.value })} /></div>
+
+          <div className="col-span-2 mt-2 text-[11px] font-semibold text-muted-foreground">Panel</div>
+          <div className="space-y-2"><Label>Panel Type</Label><Input value={form.panel_type} onChange={(e) => setForm({ ...form, panel_type: e.target.value })} placeholder="cPanel / Plesk / WHM" /></div>
+          <div className="space-y-2"><Label>Panel URL (Host)</Label><Input value={form.ftp_host} onChange={(e) => setForm({ ...form, ftp_host: e.target.value })} placeholder="host.example.com" /></div>
+          <div className="space-y-2"><Label>Panel User ID</Label><Input value={form.ftp_username} onChange={(e) => setForm({ ...form, ftp_username: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Panel Password</Label><Input type="password" value={form.ftp_password} onChange={(e) => setForm({ ...form, ftp_password: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Port</Label><Input type="number" value={form.ftp_port} onChange={(e) => setForm({ ...form, ftp_port: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Protocol Type</Label><Input value={form.ftp_protocol} onChange={(e) => setForm({ ...form, ftp_protocol: e.target.value })} placeholder="FTP / SFTP / Storj" /></div>
+
+          <div className="col-span-2 mt-2 text-[11px] font-semibold text-muted-foreground">Domain Registrar</div>
+          <div className="space-y-2"><Label>Registrar URL</Label><Input value={form.registrar_url} onChange={(e) => setForm({ ...form, registrar_url: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Registrar User Email</Label><Input value={form.registrar_email} onChange={(e) => setForm({ ...form, registrar_email: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Registrar Password</Label><Input type="password" value={form.registrar_password} onChange={(e) => setForm({ ...form, registrar_password: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Customer ID</Label><Input value={form.registrar_customer_id} onChange={(e) => setForm({ ...form, registrar_customer_id: e.target.value })} /></div>
+
+          <div className="col-span-2 mt-2 text-[11px] font-semibold text-muted-foreground">Hosting</div>
+          <div className="space-y-2"><Label>Hosting URL</Label><Input value={form.hosting_url} onChange={(e) => setForm({ ...form, hosting_url: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Hosting User ID</Label><Input value={form.hosting_user_id} onChange={(e) => setForm({ ...form, hosting_user_id: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Hosting Password</Label><Input type="password" value={form.hosting_password} onChange={(e) => setForm({ ...form, hosting_password: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Hosting Email ID</Label><Input value={form.hosting_email} onChange={(e) => setForm({ ...form, hosting_email: e.target.value })} /></div>
 
           <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           <DialogFooter className="col-span-2">
