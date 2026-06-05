@@ -85,6 +85,10 @@ Deno.serve(async (req) => {
       ? settings.amc_percents
       : String(settings.amc_percents || "55,85,100").split(",").map((s) => parseInt(s.trim()))
     ).filter((n) => !isNaN(n) && n > 0).sort((a, b) => b - a);
+    const amcDayThresholds = (Array.isArray((settings as any).amc_days_before)
+      ? (settings as any).amc_days_before
+      : String((settings as any).amc_days_before || "3,1").split(",").map((s) => parseInt(s.trim()))
+    ).filter((n: number) => !isNaN(n) && n > 0);
 
     const tplMap: Record<string, { subject: string; html: string }> = {};
     for (const t of tpls || []) tplMap[t.template_key] = { subject: t.subject, html: t.html_body };
@@ -181,23 +185,22 @@ Deno.serve(async (req) => {
       if ((a as any).triggers_disabled) continue;
       const allocated = Number(a.allocated_hours || 0);
       const used = Number(a.consumed_hours || 0);
-      if (allocated <= 0) continue;
+      // (still want date-based reminders even with no allocation, so do not early-exit)
 
       const recipients: string[] = (a.notify_emails || []).filter((e: string) => /@/.test(e));
       if (!recipients.length) continue;
 
-      const pct = Math.min(100, Math.round((used / allocated) * 100));
+      const pct = allocated > 0 ? Math.min(100, Math.round((used / allocated) * 100)) : 0;
       const remaining = Math.max(0, allocated - used);
 
       const sentArr: number[] = Array.isArray((a as any).sent_thresholds) ? (a as any).sent_thresholds.map(Number) : [];
-      const step = amcPercents
+      const step = allocated > 0 ? amcPercents
         .map((thr) => ({ thr, key: `amc_hours_${thr}` }))
-        .find((s) => pct >= s.thr && !sentArr.includes(s.thr));
-      if (!step) continue;
+        .find((s) => pct >= s.thr && !sentArr.includes(s.thr)) : null;
 
-      const tpl = tplMap[step.key];
-      if (!tpl) continue;
-
+      if (step) {
+        const tpl = tplMap[step.key];
+        if (tpl) {
       const vars = {
         client_name: clientNameMap[a.client_id || ""] || "",
         contact_person: a.contact_person || "Team",
@@ -230,6 +233,52 @@ Deno.serve(async (req) => {
         await admin.from("email_logs").insert({
           email_type: "amc_reminder", to_addresses: recipients, cc_addresses: cc,
           subject, status: "failed", error_message: errMsg,
+          related_entity: "amc_client", related_id: a.id,
+        });
+      }
+        }
+      }
+
+      // -------- AMC date-based reminders (X days before end_date + expired) --------
+      if (!a.end_date) continue;
+      const d = daysUntil(a.end_date);
+      const dateSent: number[] = Array.isArray((a as any).sent_date_thresholds)
+        ? (a as any).sent_date_thresholds.map(Number) : [];
+
+      let dateKey: string | null = null;
+      let dateThr: number | null = null;
+      if (d < 0 && sendExpired && !dateSent.includes(-1)) {
+        dateKey = "amc_expired"; dateThr = -1;
+      } else if (amcDayThresholds.includes(d) && !dateSent.includes(d)) {
+        dateKey = `amc_expiry_${d}`; dateThr = d;
+      }
+      if (!dateKey || dateThr === null) continue;
+      const dtpl = tplMap[dateKey];
+      if (!dtpl) continue;
+      const dvars = {
+        client_name: clientNameMap[a.client_id || ""] || "",
+        contact_person: a.contact_person || "Team",
+        end_date: a.end_date,
+        days_left: d,
+        days_overdue: Math.abs(d),
+      };
+      const dsubject = render(dtpl.subject, dvars);
+      const dhtml = render(dtpl.html, dvars);
+      try {
+        const trace: string[] = [];
+        await sendMail(cfg, { to: recipients, cc, subject: dsubject, html: dhtml }, (l) => trace.push(l));
+        sent++;
+        const nextDateSent = Array.from(new Set([...dateSent, dateThr]));
+        await admin.from("amc_clients").update({ sent_date_thresholds: nextDateSent } as any).eq("id", a.id);
+        await admin.from("email_logs").insert({
+          email_type: "amc_expiry", to_addresses: recipients, cc_addresses: cc,
+          subject: dsubject, status: "success", smtp_response: trace.slice(-15).join("\n"),
+          related_entity: "amc_client", related_id: a.id,
+        });
+      } catch (err: any) {
+        await admin.from("email_logs").insert({
+          email_type: "amc_expiry", to_addresses: recipients, cc_addresses: cc,
+          subject: dsubject, status: "failed", error_message: String(err?.message || err),
           related_entity: "amc_client", related_id: a.id,
         });
       }
