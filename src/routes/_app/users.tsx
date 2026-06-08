@@ -408,3 +408,84 @@ function ResetPasswordDialog({ target, onClose }: { target: ProfileRow; onClose:
     </Dialog>
   );
 }
+
+function EditUserDialog({
+  target, customRoles, isSelf, onClose, onSaved,
+}: {
+  target: ProfileRow;
+  customRoles: CustomRole[];
+  isSelf: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const initialRole = target.custom_role_id ? `custom:${target.custom_role_id}` : target.role;
+  const [fullName, setFullName] = useState(target.full_name);
+  const [role, setRole] = useState<string>(initialRole);
+  const [isActive, setIsActive] = useState<boolean>(target.is_active);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const isCustom = role.startsWith("custom:");
+    const payload: any = {
+      full_name: fullName.trim(),
+      role: isCustom ? "manager" : role,
+      custom_role_id: isCustom ? role.slice(7) : null,
+    };
+    if (!isSelf) payload.is_active = isActive;
+    const { error } = await supabase.from("user_profiles").update(payload).eq("id", target.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    void logActivity({ action: "update", entity: "user", entityId: target.id,
+      description: `Updated user ${target.email}` });
+    toast.success("User updated");
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Edit User</DialogTitle>
+          <DialogDescription>Update profile, role, and access for <b>{target.email}</b>.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={target.email} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <Select value={role} onValueChange={setRole} disabled={isSelf}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+                {customRoles.map((cr) => (
+                  <SelectItem key={cr.id} value={`custom:${cr.id}`}>{cr.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isSelf && <p className="text-[11px] text-muted-foreground">You cannot change your own role.</p>}
+          </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <div className="text-sm font-medium">Account Active</div>
+              <div className="text-[11px] text-muted-foreground">Disabled users cannot sign in.</div>
+            </div>
+            <Switch checked={isActive} onCheckedChange={setIsActive} disabled={isSelf} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
