@@ -80,20 +80,22 @@ function UsersPage() {
   };
 
   const requestDeleteCustomRole = async (cr: CustomRole) => {
-    // Block deletion if any portal-access members exist for this role,
-    // or any user is assigned to it. Also count built-in BD / Developer
-    // tables when the custom-role label maps to one of those tabs.
-    const label = cr.label.toLowerCase();
-    const builtinTables: string[] = [];
-    if (label.includes("bd") || label.includes("business")) builtinTables.push("bd_persons");
-    if (label.includes("dev")) builtinTables.push("developers");
-    const [memRes, userRes, ...biRes] = await Promise.all([
-      supabase.from("custom_role_members" as any).select("id", { count: "exact", head: true }).eq("role_id", cr.id),
+    // Block deletion only when this role actually has people assigned.
+    // We check user_profiles + the matching people table (built-in if the
+    // label exactly matches "Developers"/"BD Persons", otherwise custom_role_members).
+    const n = cr.label.trim().toLowerCase();
+    const builtin =
+      n === "developer" || n === "developers" ? "developers" :
+      n === "bd" || n === "bd person" || n === "bd persons" || n === "business development" ? "bd_persons" :
+      null;
+    const peopleQuery = builtin
+      ? supabase.from(builtin as any).select("id", { count: "exact", head: true })
+      : supabase.from("custom_role_members" as any).select("id", { count: "exact", head: true }).eq("role_id", cr.id);
+    const [peopleRes, userRes] = await Promise.all([
+      peopleQuery,
       supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("custom_role_id", cr.id),
-      ...builtinTables.map((t) => supabase.from(t as any).select("id", { count: "exact", head: true })),
     ]);
-    const builtinTotal = biRes.reduce((s: number, r: any) => s + (r?.count || 0), 0);
-    const totalUsers = (memRes.count || 0) + (userRes.count || 0) + builtinTotal;
+    const totalUsers = (peopleRes.count || 0) + (userRes.count || 0);
     if (totalUsers > 0) {
       setBlockedRole({ label: cr.label, count: totalUsers });
       return;
