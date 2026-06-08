@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Shield, KeyRound, Trash2 } from "lucide-react";
+import { Plus, Shield, KeyRound, Trash2, Pencil } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { fmtDate } from "@/lib/format";
@@ -35,11 +36,14 @@ function UsersPage() {
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [inviteDefaultRole, setInviteDefaultRole] = useState<string>("manager");
+  const [editTarget, setEditTarget] = useState<ProfileRow | null>(null);
   const [resetTarget, setResetTarget] = useState<ProfileRow | null>(null);
   const [delTarget, setDelTarget] = useState<ProfileRow | null>(null);
   const [delRoleTarget, setDelRoleTarget] = useState<CustomRole | null>(null);
   const [blockedRole, setBlockedRole] = useState<{ label: string; count: number } | null>(null);
   const [newRole, setNewRole] = useState("");
+  const [tab, setTab] = useState<string>("all");
 
   const load = async () => {
     setLoading(true);
@@ -56,20 +60,6 @@ function UsersPage() {
 
   if (!isSuperAdmin) return <div className="p-8 text-center text-muted-foreground">Super Admin access required.</div>;
 
-  // role value scheme: "super_admin" | "manager" | "custom:<uuid>"
-  const updateRole = async (id: string, value: string) => {
-    const isCustom = value.startsWith("custom:");
-    const payload = isCustom
-      ? { role: "manager", custom_role_id: value.slice(7) }
-      : { role: value as "super_admin" | "manager", custom_role_id: null };
-    const { error } = await supabase.from("user_profiles").update(payload as any).eq("id", id);
-    if (error) return toast.error(error.message);
-    const u = rows.find((r) => r.id === id);
-    void logActivity({ action: "update", entity: "user", entityId: id,
-      description: `Changed role of ${u?.email || ""} to ${value}` });
-    toast.success("Role updated"); void load();
-  };
-
   const addCustomRole = async () => {
     const label = newRole.trim();
     if (!label) return;
@@ -80,22 +70,12 @@ function UsersPage() {
   };
 
   const requestDeleteCustomRole = async (cr: CustomRole) => {
-    // Block deletion only when this role actually has people assigned.
-    // We check user_profiles + the matching people table (built-in if the
-    // label exactly matches "Developers"/"BD Persons", otherwise custom_role_members).
-    const n = cr.label.trim().toLowerCase();
-    const builtin =
-      n === "developer" || n === "developers" ? "developers" :
-      n === "bd" || n === "bd person" || n === "bd persons" || n === "business development" ? "bd_persons" :
-      null;
-    const peopleQuery = builtin
-      ? supabase.from(builtin as any).select("id", { count: "exact", head: true })
-      : supabase.from("custom_role_members" as any).select("id", { count: "exact", head: true }).eq("role_id", cr.id);
-    const [peopleRes, userRes] = await Promise.all([
-      peopleQuery,
-      supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("custom_role_id", cr.id),
-    ]);
-    const totalUsers = (peopleRes.count || 0) + (userRes.count || 0);
+    // Block deletion only when this role actually has portal users assigned.
+    const { count } = await supabase
+      .from("user_profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("custom_role_id", cr.id);
+    const totalUsers = count || 0;
     if (totalUsers > 0) {
       setBlockedRole({ label: cr.label, count: totalUsers });
       return;
@@ -107,15 +87,6 @@ function UsersPage() {
     const { error } = await supabase.from("custom_roles" as any).delete().eq("id", cr.id);
     if (error) return toast.error(error.message);
     toast.success("Role deleted"); void load();
-  };
-
-  const toggleActive = async (id: string, is_active: boolean) => {
-    const { error } = await supabase.from("user_profiles").update({ is_active }).eq("id", id);
-    if (error) return toast.error(error.message);
-    const u = rows.find((r) => r.id === id);
-    void logActivity({ action: "user_toggle_active", entity: "user", entityId: id,
-      description: `${is_active ? "Activated" : "Deactivated"} user ${u?.email || ""}` });
-    toast.success(is_active ? "User activated" : "User deactivated"); void load();
   };
 
   const requestDeleteUser = (row: ProfileRow) => {
@@ -133,13 +104,35 @@ function UsersPage() {
     toast.success("User deleted"); void load();
   };
 
+  const roleLabel = (r: ProfileRow) => {
+    if (r.custom_role_id) {
+      return customRoles.find((c) => c.id === r.custom_role_id)?.label || "Custom";
+    }
+    return r.role === "super_admin" ? "Super Admin" : "Manager";
+  };
+
+  const filteredRows = rows.filter((r) => {
+    if (tab === "all") return true;
+    if (tab === "super_admin") return r.role === "super_admin";
+    if (tab === "manager") return r.role === "manager" && !r.custom_role_id;
+    if (tab.startsWith("custom:")) return r.custom_role_id === tab.slice(7);
+    return true;
+  });
+
+  const openInviteForTab = () => {
+    if (tab === "super_admin") setInviteDefaultRole("super_admin");
+    else if (tab.startsWith("custom:")) setInviteDefaultRole(tab);
+    else setInviteDefaultRole("manager");
+    setOpen(true);
+  };
+
   return (
     <div>
       <PageHeader
         title="User Management"
-        description="Invite team members, control roles, and deactivate access."
+        description="Manage roles, invite team members, and control portal access — all in one place."
         actions={
-          <Button onClick={() => setOpen(true)} className="bg-gradient-to-r from-primary to-primary-glow">
+          <Button onClick={openInviteForTab} className="bg-gradient-to-r from-primary to-primary-glow">
             <Plus className="mr-2 h-4 w-4" /> Invite User
           </Button>
         }
@@ -159,6 +152,23 @@ function UsersPage() {
         </div>
       </Card>
 
+      <Tabs value={tab} onValueChange={setTab} className="mb-4">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="all">All ({rows.length})</TabsTrigger>
+          <TabsTrigger value="super_admin">
+            Super Admin ({rows.filter((r) => r.role === "super_admin").length})
+          </TabsTrigger>
+          <TabsTrigger value="manager">
+            Manager ({rows.filter((r) => r.role === "manager" && !r.custom_role_id).length})
+          </TabsTrigger>
+          {customRoles.map((cr) => (
+            <TabsTrigger key={cr.id} value={`custom:${cr.id}`}>
+              {cr.label} ({rows.filter((r) => r.custom_role_id === cr.id).length})
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
       {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div> : (
         <Card className="overflow-hidden">
           <table className="w-full text-sm">
@@ -173,36 +183,30 @@ function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => (
+              {filteredRows.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No users in this role yet.</td></tr>
+              )}
+              {filteredRows.map((r) => (
                 <tr key={r.id} className="hover:bg-accent/30">
                   <td className="px-4 py-3">
                     <div className="font-medium">{r.full_name}</div>
                     <div className="text-xs text-muted-foreground">{r.email}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <Select value={r.custom_role_id ? `custom:${r.custom_role_id}` : r.role} onValueChange={(v) => updateRole(r.id, v)} disabled={r.id === user?.id}>
-                      <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="super_admin">Super Admin</SelectItem>
-                        {customRoles.map((cr) => (
-                          <SelectItem key={cr.id} value={`custom:${cr.id}`}>{cr.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Badge variant="outline">{roleLabel(r)}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={r.is_active} onCheckedChange={(v) => toggleActive(r.id, v)} disabled={r.id === user?.id} />
-                      <Badge variant="outline" className={r.is_active ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"}>
-                        {r.is_active ? "Active" : "Disabled"}
-                      </Badge>
-                    </div>
+                    <Badge variant="outline" className={r.is_active ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"}>
+                      {r.is_active ? "Active" : "Disabled"}
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.last_login ? fmtDate(r.last_login) : "Never"}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.created_at)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => setEditTarget(r)} title="Edit user">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => setResetTarget(r)} title="Reset password">
                         <KeyRound className="h-4 w-4" />
                       </Button>
@@ -224,7 +228,21 @@ function UsersPage() {
         </Card>
       )}
 
-      <InviteDialog open={open} onOpenChange={setOpen} onSaved={() => { setOpen(false); void load(); }} />
+      <InviteDialog
+        open={open}
+        onOpenChange={setOpen}
+        defaultRole={inviteDefaultRole}
+        onSaved={() => { setOpen(false); void load(); }}
+      />
+      {editTarget && (
+        <EditUserDialog
+          target={editTarget}
+          customRoles={customRoles}
+          isSelf={editTarget.id === user?.id}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { setEditTarget(null); void load(); }}
+        />
+      )}
       {resetTarget && (
         <ResetPasswordDialog
           target={resetTarget}
@@ -272,8 +290,8 @@ function UsersPage() {
   );
 }
 
-function InviteDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "manager" });
+function InviteDialog({ open, onOpenChange, onSaved, defaultRole }: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void; defaultRole: string }) {
+  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: defaultRole });
   const [saving, setSaving] = useState(false);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
 
@@ -283,6 +301,10 @@ function InviteDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenCh
       setCustomRoles((data as any) || []);
     })();
   }, []);
+
+  useEffect(() => {
+    if (open) setForm((f) => ({ ...f, role: defaultRole }));
+  }, [open, defaultRole]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,6 +402,87 @@ function ResetPasswordDialog({ target, onClose }: { target: ProfileRow; onClose:
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Reset & Email"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditUserDialog({
+  target, customRoles, isSelf, onClose, onSaved,
+}: {
+  target: ProfileRow;
+  customRoles: CustomRole[];
+  isSelf: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const initialRole = target.custom_role_id ? `custom:${target.custom_role_id}` : target.role;
+  const [fullName, setFullName] = useState(target.full_name);
+  const [role, setRole] = useState<string>(initialRole);
+  const [isActive, setIsActive] = useState<boolean>(target.is_active);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const isCustom = role.startsWith("custom:");
+    const payload: any = {
+      full_name: fullName.trim(),
+      role: isCustom ? "manager" : role,
+      custom_role_id: isCustom ? role.slice(7) : null,
+    };
+    if (!isSelf) payload.is_active = isActive;
+    const { error } = await supabase.from("user_profiles").update(payload).eq("id", target.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    void logActivity({ action: "update", entity: "user", entityId: target.id,
+      description: `Updated user ${target.email}` });
+    toast.success("User updated");
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Edit User</DialogTitle>
+          <DialogDescription>Update profile, role, and access for <b>{target.email}</b>.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={target.email} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <Select value={role} onValueChange={setRole} disabled={isSelf}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+                {customRoles.map((cr) => (
+                  <SelectItem key={cr.id} value={`custom:${cr.id}`}>{cr.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isSelf && <p className="text-[11px] text-muted-foreground">You cannot change your own role.</p>}
+          </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <div className="text-sm font-medium">Account Active</div>
+              <div className="text-[11px] text-muted-foreground">Disabled users cannot sign in.</div>
+            </div>
+            <Switch checked={isActive} onCheckedChange={setIsActive} disabled={isSelf} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
