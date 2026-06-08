@@ -120,11 +120,8 @@ export function AppShell() {
       {/* Main */}
       <div className="flex flex-1 flex-col lg:pl-64">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-md">
-          <div>
-            <h1 className="text-lg font-semibold">{titleFromPath(location.pathname)}</h1>
-            <p className="text-xs text-muted-foreground">
-              {profile?.role === "super_admin" ? "Super Admin workspace" : "Manager workspace"}
-            </p>
+          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            {profile?.role === "super_admin" ? "Super Admin workspace" : "Manager workspace"}
           </div>
 
           <div className="flex items-center gap-3">
@@ -187,21 +184,3 @@ export function AppShell() {
   );
 }
 
-function titleFromPath(path: string): string {
-  const seg = path.split("/").filter(Boolean)[0];
-  const map: Record<string, string> = {
-    dashboard: "Dashboard",
-    clients: "Clients",
-    renewals: "Renewals",
-    amc: "AMC Clients",
-    "time-entries": "Time Entries",
-    credentials: "Credentials Vault",
-    "email-templates": "Email Templates",
-    users: "User Management",
-    people: "Portal Access",
-    "import-export": "Import / Export",
-    backup: "Database Backup",
-    settings: "Settings",
-  };
-  return map[seg] || "Paarami Portal";
-}
