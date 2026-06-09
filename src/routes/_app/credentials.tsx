@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { KeyRound, Shield, Activity } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
+import { LogFilterBar, useLogFilter } from "@/components/log-filter-bar";
 
 export const Route = createFileRoute("/_app/credentials")({ component: CredentialsAuditPage });
 
@@ -18,17 +19,21 @@ interface LogRow {
 }
 
 function CredentialsAuditPage() {
+  const f = useLogFilter("today");
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [renewals, setRenewals] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [f.preset, f.from, f.to]);
 
   async function load() {
     setLoading(true);
+    let q = supabase.from("credential_access_logs").select("*").order("accessed_at", { ascending: false }).limit(500);
+    if (f.range.from) q = q.gte("accessed_at", f.range.from);
+    if (f.range.to)   q = q.lte("accessed_at", f.range.to);
     const [{ data: l }, { data: r }, { data: u }] = await Promise.all([
-      supabase.from("credential_access_logs").select("*").order("accessed_at", { ascending: false }).limit(200),
+      q,
       supabase.from("renewals").select("id, domain"),
       supabase.from("user_profiles").select("id, full_name, email"),
     ]);
@@ -56,6 +61,7 @@ function CredentialsAuditPage() {
           Access Audit Log
           <Badge variant="outline" className="ml-auto">{logs.length} events</Badge>
         </div>
+        <LogFilterBar {...f} />
         {loading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
           : logs.length === 0 ? <EmptyState icon={KeyRound} title="No credential accesses yet" description="Access events appear here when Super Admins reveal stored credentials." />
           : (
