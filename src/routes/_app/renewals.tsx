@@ -50,6 +50,7 @@ interface RenewalRow {
 }
 
 type Filter = "all" | "expired" | "critical" | "warning" | "ok";
+type SortKey = "expiry_asc" | "expiry_desc" | "az" | "za";
 
 function RenewalsPage() {
   const { isSuperAdmin } = useAuth();
@@ -58,6 +59,7 @@ function RenewalsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<SortKey>("expiry_asc");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RenewalRow | null>(null);
   const [vaultId, setVaultId] = useState<string | null>(null);
@@ -81,7 +83,7 @@ function RenewalsPage() {
     (clients.find((c) => c.id === id) as any)?.client_type as "internal" | "external" | undefined;
 
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       const blob = `${r.domain} ${clientName(r.client_id)} ${r.contact_person || ""} ${r.registrar || ""}`.toLowerCase();
       if (search && !blob.includes(search.toLowerCase())) return false;
       if (filter === "all") return true;
@@ -89,7 +91,19 @@ function RenewalsPage() {
       const v = expiryStatus(earliest).variant;
       return v === filter;
     });
-  }, [rows, search, filter, clients]);
+    const earliestOf = (r: RenewalRow) =>
+      [r.domain_expiry, r.hosting_expiry, r.ga_expiry].filter(Boolean).sort()[0] || null;
+    const sorted = [...list].sort((a, b) => {
+      if (sort === "az") return a.domain.localeCompare(b.domain);
+      if (sort === "za") return b.domain.localeCompare(a.domain);
+      const ea = earliestOf(a); const eb = earliestOf(b);
+      if (!ea && !eb) return 0;
+      if (!ea) return 1;
+      if (!eb) return -1;
+      return sort === "expiry_asc" ? ea.localeCompare(eb) : eb.localeCompare(ea);
+    });
+    return sorted;
+  }, [rows, search, filter, sort, clients]);
 
   const del = async (id: string) => {
     const row = rows.find((r) => r.id === id);
@@ -151,6 +165,15 @@ function RenewalsPage() {
             <TabsTrigger value="ok">Healthy</TabsTrigger>
           </TabsList>
         </Tabs>
+        <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+          <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="expiry_asc">Expiry: soonest first</SelectItem>
+            <SelectItem value="expiry_desc">Expiry: latest first</SelectItem>
+            <SelectItem value="az">Domain: A → Z</SelectItem>
+            <SelectItem value="za">Domain: Z → A</SelectItem>
+          </SelectContent>
+        </Select>
         <Badge variant="outline">{filtered.length} renewals</Badge>
       </div>
 
