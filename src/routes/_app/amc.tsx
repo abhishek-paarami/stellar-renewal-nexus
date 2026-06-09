@@ -57,6 +57,9 @@ function AmcPage() {
   const [clients, setClients] = useState<{ id: string; company_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<
+    "expiry_asc" | "expiry_desc" | "az" | "za" | "hours_asc" | "hours_desc"
+  >("expiry_asc");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AmcRow | null>(null);
   const [triggerWarn, setTriggerWarn] = useState<AmcRow | null>(null);
@@ -77,9 +80,17 @@ function AmcPage() {
 
   const clientName = (id: string | null) => clients.find((c) => c.id === id)?.company_name || "—";
 
-  const filtered = rows.filter((r) =>
+  const filteredBase = rows.filter((r) =>
     `${clientName(r.client_id)} ${r.website} ${r.bd_person}`.toLowerCase().includes(search.toLowerCase())
   );
+  const filtered = [...filteredBase].sort((a, b) => {
+    if (sort === "az") return clientName(a.client_id).localeCompare(clientName(b.client_id));
+    if (sort === "za") return clientName(b.client_id).localeCompare(clientName(a.client_id));
+    if (sort === "hours_asc") return Number(a.consumed_hours) - Number(b.consumed_hours);
+    if (sort === "hours_desc") return Number(b.consumed_hours) - Number(a.consumed_hours);
+    const ea = a.end_date || ""; const eb = b.end_date || "";
+    return sort === "expiry_asc" ? ea.localeCompare(eb) : eb.localeCompare(ea);
+  });
 
   const del = (id: string) => {
     const row = rows.find((r) => r.id === id);
@@ -134,6 +145,17 @@ function AmcPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search client, website, BD..." className="pl-10" />
         </div>
+        <Select value={sort} onValueChange={(v) => setSort(v as any)}>
+          <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="expiry_asc">Expiry: soonest first</SelectItem>
+            <SelectItem value="expiry_desc">Expiry: latest first</SelectItem>
+            <SelectItem value="az">Client: A → Z</SelectItem>
+            <SelectItem value="za">Client: Z → A</SelectItem>
+            <SelectItem value="hours_asc">Hours consumed: low → high</SelectItem>
+            <SelectItem value="hours_desc">Hours consumed: high → low</SelectItem>
+          </SelectContent>
+        </Select>
         <Badge variant="outline">{filtered.length} AMCs</Badge>
       </div>
 
