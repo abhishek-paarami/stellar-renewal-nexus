@@ -12,7 +12,6 @@ import {
   Settings,
   Shield,
   LogOut,
-  Bell,
   ChevronDown,
   FileSpreadsheet,
   Lock,
