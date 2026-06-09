@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { fmtDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
-import { Download } from "lucide-react";
 import { LogFilterBar, useLogFilter } from "@/components/log-filter-bar";
 
 function downloadCsv(filename: string, rows: any[], cols: { key: string; label: string }[]) {
