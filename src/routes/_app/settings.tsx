@@ -296,7 +296,7 @@ function ReminderPanel() {
 }
 
 function ReminderLogs() {
-  const f = useLogFilter("30d");
+  const f = useLogFilter("today");
   const [logs, setLogs] = useState<any[]>([]);
   const load = async () => {
     let q = supabase.from("reminder_logs").select("*").order("sent_at", { ascending: false }).limit(500);
@@ -340,7 +340,7 @@ function ReminderLogs() {
 }
 
 function EmailLogs() {
-  const f = useLogFilter("30d");
+  const f = useLogFilter("today");
   const [logs, setLogs] = useState<any[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const load = async () => {
@@ -409,7 +409,7 @@ function EmailLogs() {
 }
 
 function ActivityLogs() {
-  const f = useLogFilter("30d");
+  const f = useLogFilter("today");
   const [logs, setLogs] = useState<any[]>([]);
   const [users, setUsers] = useState<Record<string, string>>({});
   const load = async () => {
