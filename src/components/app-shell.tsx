@@ -12,7 +12,6 @@ import {
   Settings,
   Shield,
   LogOut,
-  Bell,
   ChevronDown,
   FileSpreadsheet,
   Lock,
@@ -55,12 +54,7 @@ export function AppShell() {
     select: (s) => s.status === "pending" || s.isLoading || s.isTransitioning,
   });
 
-  const initials = (profile?.full_name || profile?.email || "?")
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = ((profile?.full_name || profile?.email || "?").trim()[0] || "?").toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -123,10 +117,6 @@ export function AppShell() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full p-1 pr-3 transition hover:bg-accent">
