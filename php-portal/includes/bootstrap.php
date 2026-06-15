@@ -64,3 +64,4 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/activity_log.php';
+require_once __DIR__ . '/page_header.php';
