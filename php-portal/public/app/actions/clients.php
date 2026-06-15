@@ -29,7 +29,7 @@ try {
                  VALUES (?,?,?,?,?,?,?,?,?,?,?)',
                 [$id, $company_name, $primary_contact ?: null, $primary_email ?: null, $primary_phone ?: null, $address ?: null, $client_type, $notes ?: null, json_col([]), $user['id'], $user['id']]
             );
-            log_activity('create', ['entity' => 'client', 'entity_id' => $id, 'description' => "Created client \"$company_name\""]);
+            log_activity('create', ['entity_type' => 'client', 'entity_id' => $id, 'description' => "Created client \"$company_name\""]);
             json_response(['ok' => true, 'id' => $id, 'message' => 'Client created']);
         }
 
@@ -37,7 +37,7 @@ try {
             'UPDATE clients SET company_name=?, primary_contact=?, primary_email=?, primary_phone=?, address=?, client_type=?, notes=?, updated_by=? WHERE id=?',
             [$company_name, $primary_contact ?: null, $primary_email ?: null, $primary_phone ?: null, $address ?: null, $client_type, $notes ?: null, $user['id'], $id]
         );
-        log_activity('update', ['entity' => 'client', 'entity_id' => $id, 'description' => "Updated client \"$company_name\""]);
+        log_activity('update', ['entity_type' => 'client', 'entity_id' => $id, 'description' => "Updated client \"$company_name\""]);
         json_response(['ok' => true, 'id' => $id, 'message' => 'Client updated']);
     }
 
@@ -47,7 +47,7 @@ try {
         $row = db_one('SELECT company_name FROM clients WHERE id = ?', [$id]);
         if (!$row) throw new RuntimeException('Client not found.');
         db_exec('DELETE FROM clients WHERE id = ?', [$id]);
-        log_activity('delete', ['entity' => 'client', 'entity_id' => $id, 'description' => "Deleted client \"{$row['company_name']}\""]);
+        log_activity('delete', ['entity_type' => 'client', 'entity_id' => $id, 'description' => "Deleted client \"{$row['company_name']}\""]);
         json_response(['ok' => true]);
     }
 
