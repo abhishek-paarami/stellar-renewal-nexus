@@ -96,6 +96,36 @@
     }
   });
 
+  /* ---------- Slideover panel ----------
+   * <div class="slideover" id="myPanel">...</div>
+   * <div class="slideover-back" data-slideover-back="myPanel"></div>
+   * <button data-slideover-open="myPanel">Open</button>
+   * <button data-slideover-close>Close</button>
+   */
+  document.addEventListener('click', (e) => {
+    const openBtn = e.target.closest('[data-slideover-open]');
+    if (openBtn) {
+      const id = openBtn.dataset.slideoverOpen;
+      const panel = document.getElementById(id);
+      const back = document.querySelector(`[data-slideover-back="${id}"]`);
+      panel?.classList.add('is-open');
+      back?.classList.add('is-open');
+      const evt = new CustomEvent('slideover:open', { detail: { id, trigger: openBtn } });
+      panel?.dispatchEvent(evt);
+      return;
+    }
+    if (e.target.closest('[data-slideover-close]') || e.target.matches('.slideover-back')) {
+      document.querySelectorAll('.slideover.is-open').forEach((p) => p.classList.remove('is-open'));
+      document.querySelectorAll('.slideover-back.is-open').forEach((b) => b.classList.remove('is-open'));
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.slideover.is-open').forEach((p) => p.classList.remove('is-open'));
+      document.querySelectorAll('.slideover-back.is-open').forEach((b) => b.classList.remove('is-open'));
+    }
+  });
+
   /* ---------- POST helper with CSRF ---------- */
   window.postJSON = async function (url, data = {}) {
     const fd = new FormData();
