@@ -65,3 +65,18 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/activity_log.php';
 require_once __DIR__ . '/page_header.php';
+
+/* -------- Security headers (internal portal — no crawlers) -------- */
+if (PHP_SAPI !== 'cli') {
+    $sec = $config['security'] ?? [];
+    if (!empty($sec['strict_headers'])) {
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'");
+    }
+    if (!empty($sec['block_crawlers'])) {
+        header('X-Robots-Tag: noindex, nofollow, noarchive, nosnippet');
+    }
+}
