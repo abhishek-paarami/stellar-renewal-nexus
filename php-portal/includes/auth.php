@@ -48,7 +48,7 @@ function attempt_login(string $email, string $password): array {
     try {
         $row = db_one(
             "SELECT COUNT(*) AS c FROM activity_logs
-              WHERE action = 'login_failed' AND ip_address = ? AND created_at > ?",
+              WHERE action_type = 'login_failed' AND ip_address = ? AND created_at > ?",
             [$ip, $since]
         );
         if ($row && (int)$row['c'] >= $maxTry) {
@@ -64,7 +64,7 @@ function attempt_login(string $email, string $password): array {
     $fail = function(string $msg) use ($ip, $email) {
         try {
             db_exec(
-                'INSERT INTO activity_logs (id, user_id, action, entity_type, description, ip_address)
+                'INSERT INTO activity_logs (id, user_id, action_type, entity_type, description, ip_address)
                  VALUES (?, NULL, ?, ?, ?, ?)',
                 [uuidv4(), 'login_failed', 'auth', 'Failed login for ' . substr($email, 0, 80), $ip]
             );
