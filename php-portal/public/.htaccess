@@ -4,8 +4,22 @@ RewriteEngine On
 # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteRule (^|/)\.(?!well-known) - [F]
 DirectoryIndex index.php
+Options -Indexes
+
+# Block direct access to sensitive file types
+<FilesMatch "\.(sql|md|sample\.php|log|ini|sh|bak|swp)$">
+  Require all denied
+</FilesMatch>
+
+# Block access to action handler files via direct GET (they only accept POST)
+<FilesMatch "^(config|composer\.(json|lock))$">
+  Require all denied
+</FilesMatch>
+
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>

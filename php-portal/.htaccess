@@ -1,0 +1,5 @@
+# Top-level .htaccess: deny direct access to anything outside /public/.
+# On Hostinger, point the domain document root at /public, but if the
+# project is dropped into public_html as-is this file blocks leaks.
+Require all denied
+Options -Indexes
