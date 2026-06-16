@@ -50,4 +50,25 @@ return [
         'secure'   => true,            // set false on local http
         'samesite' => 'Lax',
     ],
+
+    // ---- Cron (reminders) ----
+    // Used by /api/cron-reminders.php. Generate once:
+    //   php -r "echo bin2hex(random_bytes(24));"
+    // Then call daily:
+    //   curl -s "https://portal.example.com/api/cron-reminders.php?secret=YOUR_SECRET"
+    'cron' => [
+        'secret' => 'REPLACE_WITH_LONG_RANDOM_STRING',
+    ],
+
+    // ---- Security ----
+    'security' => [
+        // Lock login after this many consecutive failures from the same IP
+        // within `lockout_window_min` minutes.
+        'max_login_attempts' => 8,
+        'lockout_window_min' => 15,
+        // Send strict security headers (X-Frame, CSP-lite, etc.)
+        'strict_headers'     => true,
+        // Block all search engine / AI crawlers (internal portal)
+        'block_crawlers'     => true,
+    ],
 ];
