@@ -25,7 +25,7 @@ if ($from) { $sql .= ' WHERE l.accessed_at >= ? AND l.accessed_at <= ?'; $params
 $sql .= ' ORDER BY l.accessed_at DESC LIMIT 500';
 $logs = db_all($sql, $params);
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Credentials Vault',
     'Encrypted credentials are accessed from each Renewal row. Every access is recorded below.',
@@ -64,4 +64,4 @@ require __DIR__ . '/../../includes/layout_header.php';
     </table></div>
   <?php endif; ?>
 </div>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

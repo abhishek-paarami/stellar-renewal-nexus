@@ -27,7 +27,7 @@ $roleLabel = function(array $r) use ($rolesById): string {
     return $r['role']==='super_admin' ? 'Super Admin' : 'Manager';
 };
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('User Management',
     'Manage roles, invite team members, and control portal access — all in one place.',
@@ -294,4 +294,4 @@ require __DIR__ . '/../../includes/layout_header.php';
 .switch input:checked + span:before{transform:translateX(16px)}
 .switch input:disabled + span{opacity:.5;cursor:not-allowed}
 </style>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

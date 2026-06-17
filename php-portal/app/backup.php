@@ -2,7 +2,7 @@
 require __DIR__ . '/../includes/bootstrap.php';
 $me = require_super_admin();
 $page_title = 'Database Backup & Restore';
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Database Backup & Restore', 'Full JSON snapshot of every portal table. Super Admin only.'); ?>
 
@@ -113,4 +113,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   }
 })();
 </script>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

@@ -50,7 +50,7 @@ foreach ($rows as $r) {
 usort($upcoming, fn($a, $b) => $a['days'] <=> $b['days']);
 $upcoming = array_slice($upcoming, 0, 8);
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Dashboard', 'Snapshot of clients, renewals and AMC hours.'); ?>
 
@@ -118,4 +118,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   </div>
 </div>
 
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

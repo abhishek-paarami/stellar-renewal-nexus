@@ -29,7 +29,7 @@ $entries = array_values(array_filter($entries, function ($r) use ($q, $amcTab, $
 $usedAmcIds = array_values(array_unique(array_filter(array_column($entries, 'amc_client_id'))));
 $totalHours = 0; foreach ($entries as $r) $totalHours += (int)$r['hours'] + (int)$r['minutes']/60;
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Time Entries', 'Log developer hours against AMC contracts. Approved entries auto-deduct allocated hours.',
     '<button type="button" class="btn btn--gradient" data-te-new>' . icon('clock') . ' Log Time</button>'
@@ -164,4 +164,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   }));
 })();
 </script>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

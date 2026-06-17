@@ -24,7 +24,7 @@ $labelFor = function(string $k) use ($labels): string {
 
 $variables = ['{{client_name}}','{{domain}}','{{expiry_kind}}','{{expiry_date}}','{{days_left}}','{{contact_person}}','{{usage_pct}}','{{allocated_hours}}','{{used_hours}}','{{remaining_hours}}','{{end_date}}','{{days_overdue}}','{{service_name}}','{{cycle_month}}'];
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Email Templates', 'Customize the HTML reminders sent automatically at every configured threshold and after expiry.'); ?>
 
@@ -90,4 +90,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   });
 })();
 </script>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

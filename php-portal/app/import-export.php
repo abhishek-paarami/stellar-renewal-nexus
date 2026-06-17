@@ -2,7 +2,7 @@
 require __DIR__ . '/../includes/bootstrap.php';
 $user = require_login(); $isSA = is_super_admin();
 $page_title = 'Import / Export';
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Import / Export',
     $isSA ? 'Bulk import raw data and export anything for backup or reporting.'
@@ -201,4 +201,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 })();
 </script>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>
