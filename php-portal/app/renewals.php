@@ -46,7 +46,7 @@ usort($rows, function ($a, $b) use ($sort, $earliest) {
 $clients = db_all('SELECT id, company_name, client_type FROM clients ORDER BY company_name');
 $clientsJson = json_encode($clients, JSON_UNESCAPED_UNICODE);
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Renewals', 'Domains, hosting, Google Apps & mail expiries.',
     '<button type="button" class="btn btn--gradient" data-renewal-new>' . icon('refresh') . ' New Renewal</button>'
@@ -335,4 +335,4 @@ require __DIR__ . '/../../includes/layout_header.php';
 })();
 </script>
 
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

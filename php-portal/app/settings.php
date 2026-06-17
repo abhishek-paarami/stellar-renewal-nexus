@@ -29,7 +29,7 @@ if (!$from && !$to) {
     elseif ($preset === '30d') { $from = $now->modify('-30 days')->format('Y-m-d 00:00:00'); $to = $now->format('Y-m-d 23:59:59'); }
 }
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('Settings', 'SMTP, reminders, and activity log.'); ?>
 
@@ -187,4 +187,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   });
 })();
 </script>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

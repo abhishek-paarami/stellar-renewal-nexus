@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../../includes/reminders.php';
+require_once __DIR__ . '/../../includes/reminders.php';
 $user = require_super_admin();
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -75,7 +75,7 @@ try {
         json_response(['ok'=>true,'message'=>'Reminder settings saved — templates synced']);
     }
     if ($action === 'send_test') {
-        require_once __DIR__ . '/../../../includes/mailer.php';
+        require_once __DIR__ . '/../../includes/mailer.php';
         $to = trim((string)($_POST['to'] ?? ''));
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Enter a valid email');
         $res = send_mail([$to], [], 'Paarami Portal SMTP test',

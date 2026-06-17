@@ -9,7 +9,7 @@
  * falls back to a Super Admin session.
  */
 require __DIR__ . '/../includes/bootstrap.php';
-require_once __DIR__ . '/../../includes/reminders.php';
+require_once __DIR__ . '/../includes/reminders.php';
 
 $cfg = $GLOBALS['paarami_config'];
 $secret = $cfg['cron']['secret'] ?? '';

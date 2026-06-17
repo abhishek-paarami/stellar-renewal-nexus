@@ -26,7 +26,7 @@ $clients = db_all('SELECT id, company_name FROM clients ORDER BY company_name');
 $bd      = db_all("SELECT id, name FROM bd_persons WHERE is_active = 1 ORDER BY name");
 $existingClientIds = array_values(array_filter(array_column($rows, 'client_id')));
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header('AMC Clients', 'Annual Maintenance Contracts with hour tracking & expiry alerts.',
     '<button type="button" class="btn btn--gradient" data-amc-new>' . icon('wrench') . ' New AMC</button>'
@@ -221,4 +221,4 @@ require __DIR__ . '/../../includes/layout_header.php';
   }));
 })();
 </script>
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>

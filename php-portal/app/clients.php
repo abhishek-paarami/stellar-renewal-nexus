@@ -20,7 +20,7 @@ if ($editId) {
     $editRow = db_one('SELECT * FROM clients WHERE id = ?', [$editId]);
 }
 
-require __DIR__ . '/../../includes/layout_header.php';
+require __DIR__ . '/../includes/layout_header.php';
 ?>
 <?php render_page_header(
     'Clients',
@@ -211,4 +211,4 @@ require __DIR__ . '/../../includes/layout_header.php';
 })();
 </script>
 
-<?php require __DIR__ . '/../../includes/layout_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout_footer.php'; ?>
