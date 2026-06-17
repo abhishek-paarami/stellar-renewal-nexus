@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../includes/bootstrap.php';
+require __DIR__ . '/../includes/bootstrap.php';
 $user = require_login();
 $page_title = 'Clients';
 

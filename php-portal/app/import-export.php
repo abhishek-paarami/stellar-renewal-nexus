@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../includes/bootstrap.php';
+require __DIR__ . '/../includes/bootstrap.php';
 $user = require_login(); $isSA = is_super_admin();
 $page_title = 'Import / Export';
 require __DIR__ . '/../../includes/layout_header.php';

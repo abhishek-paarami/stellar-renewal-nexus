@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../../includes/bootstrap.php';
+require __DIR__ . '/../../includes/bootstrap.php';
 $me = require_super_admin();
 
 /* Tables backed up — order matters for restore (parents first). */

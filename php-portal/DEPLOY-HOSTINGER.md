@@ -1,32 +1,33 @@
 # Deploying php-portal.zip to Hostinger
 
-1. **Upload the ZIP**
-   In Hostinger File Manager, open `public_html/`, click *Upload*, choose
-   `php-portal.zip`, then *Extract* it. Move everything inside
-   `php-portal/public/` to the root of `public_html/`, and keep
-   `php-portal/includes/`, `php-portal/vendor/`, `php-portal/uploads/`,
-   `php-portal/schema.sql`, and `php-portal/config.sample.php` **one level
-   above** `public_html/` (Hostinger calls this `domains/<yourdomain>/`).
-   This keeps secrets and PHP includes outside the web root.
+The ZIP is a **flat single-folder** package. Everything extracts directly
+into `public_html/` — no outer wrapper, no split between web-root and
+private folders. Sensitive paths (`includes/`, `vendor/`, `uploads/`,
+`config.php`, `*.sql`, `*.md`) are protected by `.htaccess` rules that
+ship inside the ZIP.
 
-   *If your hosting plan does not allow files above `public_html/`,* you may
-   extract the whole `php-portal/` folder inside `public_html/` and point
-   the domain's document root to `public_html/php-portal/public/`. Both
-   layouts work.
+1. **Upload & extract**
+   Hostinger File Manager → open `public_html/` → *Upload* `php-portal.zip`
+   → *Extract here*. You should now see at the root of `public_html/`:
+   `index.php`, `login.php`, `logout.php`, `.htaccess`, `app/`,
+   `assets/`, `includes/`, `vendor/`, `uploads/`, `api/`, `robots.txt`,
+   `config.sample.php`, `schema.sql`.
 
 2. **Create the MySQL database** in *Hostinger → Databases → MySQL
    Databases*. Note the database name, username, and password.
 
 3. **Import the schema** in *phpMyAdmin → Import*, upload
-   `php-portal/schema.sql`, run.
+   `schema.sql`, run.
 
-4. **Create config.php** by copying `config.sample.php` to `config.php`
-   (next to `includes/`). Fill in:
+4. **Create config.php** by renaming `config.sample.php` to `config.php`
+   (in `public_html/`). Fill in:
    - `db.host`, `db.name`, `db.user`, `db.pass` — values from step 2
    - `app.base_url` — e.g. `https://portal.yourdomain.com`
    - `vault.key_hex` — run `php -r "echo bin2hex(random_bytes(32));"` on
      any machine and paste the 64-char string. **Never change this later**
      or saved vault credentials become unreadable.
+   - `cron.secret` — any long random string; used to authorize the
+     reminder cron URL.
    - `smtp.*` — your Hostinger email account (or override in
      Portal → Settings → SMTP later).
 
@@ -42,13 +43,11 @@
    `php -r "echo password_hash('YourPassword', PASSWORD_BCRYPT);"`
 
 6. **Schedule the reminder cron** in *Hostinger → Advanced → Cron Jobs*.
-   Run every 6 hours:
+   Run every 6 hours via HTTP (simplest on shared hosting):
 
    ```
-   /usr/bin/php /home/USERNAME/domains/yourdomain.com/php-portal/cron/send-reminders.php
+   curl -s "https://portal.yourdomain.com/api/cron-reminders.php?secret=YOUR_CRON_SECRET"
    ```
-
-   (The cron script ships in a later phase.)
 
 7. **Test the login** at `https://portal.yourdomain.com/login.php` using
    the Super Admin email/password from step 5.
@@ -56,21 +55,21 @@
 ## Folder layout reference
 
 ```
-/home/USERNAME/domains/portal.yourdomain.com/
-├── php-portal/
-│   ├── config.php                    ← edit this (NOT in zip — copy from sample)
-│   ├── config.sample.php
-│   ├── schema.sql
-│   ├── DEPLOY-HOSTINGER.md
-│   ├── includes/
-│   ├── vendor/   (PHPMailer)
-│   ├── uploads/  (chmod 775)
-│   └── public/   ← this is the web root
-│       ├── index.php
-│       ├── login.php
-│       ├── logout.php
-│       ├── .htaccess
-│       ├── app/
-│       └── assets/
-└── (cron/ added in later phase)
+public_html/
+├── .htaccess              ← hardening + crawler blocking
+├── index.php
+├── login.php
+├── logout.php
+├── config.php             ← you create this from config.sample.php
+├── config.sample.php
+├── schema.sql
+├── robots.txt
+├── app/                   ← dashboard, renewals, amc, clients, ...
+│   └── actions/           ← POST handlers (CSRF protected)
+├── api/
+│   └── cron-reminders.php ← hit via curl + ?secret=
+├── assets/                ← css, js, images
+├── includes/              ← .htaccess: deny all (PHP includes only)
+├── vendor/                ← .htaccess: deny all (PHPMailer)
+└── uploads/               ← .htaccess: deny PHP execution, chmod 775
 ```

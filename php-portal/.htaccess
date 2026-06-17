@@ -1,5 +1,25 @@
-# Top-level .htaccess: deny direct access to anything outside /public/.
-# On Hostinger, point the domain document root at /public, but if the
-# project is dropped into public_html as-is this file blocks leaks.
-Require all denied
+RewriteEngine On
+# Force HTTPS (uncomment in production)
+# RewriteCond %{HTTPS} !=on
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteRule (^|/)\.(?!well-known) - [F]
+DirectoryIndex index.php
 Options -Indexes
+
+# Block direct access to sensitive file types
+<FilesMatch "\.(sql|md|sample\.php|log|ini|sh|bak|swp)$">
+  Require all denied
+</FilesMatch>
+
+# Block access to action handler files via direct GET (they only accept POST)
+<FilesMatch "^(config|composer\.(json|lock))$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>

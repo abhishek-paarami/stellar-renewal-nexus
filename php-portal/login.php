@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../includes/bootstrap.php';
+require __DIR__ . '/includes/bootstrap.php';
 
 if (current_user()) redirect('/app/dashboard.php');
 
