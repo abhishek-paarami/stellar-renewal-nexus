@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../includes/bootstrap.php';
+require __DIR__ . '/../includes/bootstrap.php';
 require_login();
 $page_title = 'Dashboard';
 

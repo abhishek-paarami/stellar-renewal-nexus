@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../includes/bootstrap.php';
+require __DIR__ . '/../includes/bootstrap.php';
 require_super_admin();
 $page_title = 'Settings';
 

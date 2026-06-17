@@ -8,7 +8,7 @@
  * The secret is read from config.php['cron']['secret'] when present, otherwise
  * falls back to a Super Admin session.
  */
-require __DIR__ . '/../../includes/bootstrap.php';
+require __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/reminders.php';
 
 $cfg = $GLOBALS['paarami_config'];

@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../includes/bootstrap.php';
+require __DIR__ . '/../includes/bootstrap.php';
 $me = require_super_admin();
 $page_title = 'Database Backup & Restore';
 require __DIR__ . '/../../includes/layout_header.php';

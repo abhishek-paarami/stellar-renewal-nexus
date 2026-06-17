@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../../includes/bootstrap.php';
+require __DIR__ . '/../../includes/bootstrap.php';
 $user = require_super_admin();
 verify_csrf();
 header('Content-Type: application/json; charset=utf-8');

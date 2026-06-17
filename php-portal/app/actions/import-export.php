@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../../includes/bootstrap.php';
+require __DIR__ . '/../../includes/bootstrap.php';
 $me = require_login(); $isSA = is_super_admin();
 
 $action = $_GET['action'] ?? '';
